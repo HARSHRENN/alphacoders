@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build:hosted",
+  "outputDirectory": "dist/web",
+  "cleanUrls": true,
+  "rewrites": [{ "source": "/:path*", "destination": "/" }],
+  "headers": [
+    { "source": "/app-config.json", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/:path*", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }] }
+  ]
+}
