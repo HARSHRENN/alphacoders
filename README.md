@@ -4,6 +4,10 @@ An Android-first React Native + Expo app for recurring work check-ins, multiple 
 
 **Status:** Firebase email/password signup and the Supabase Firebase integration are enabled. All three database migrations, the account-access function, notification worker, and minute-by-minute cron schedule are deployed. The signed APK includes public Firebase/Supabase configuration and native Android FCM resources, with no demo data. The replacement server-only Firebase credential is saved, and the scheduled worker returns HTTP 200 with an empty queue. Real signup, email verification, founder workspace creation, and cloud reload have passed. The replacement Firebase service account has the approved three-permission backend role. Project/update form validation and empty screens are verified with no sample records created. Cross-phone updates and Android notification delivery still need device testing.
 
+## Use the hosted app
+
+Web app: https://alphacoders-six.vercel.app. Android download: https://alphacoders-six.vercel.app/downloads/alphacoders.apk. Sign in with your verified account; teammates sign up and join using the workspace invite code. The hosted app and standalone APK use Firebase/Supabase directly and do not require Metro or the development computer. Android notification delivery still needs a physical-device check.
+
 ## Try it locally
 
 Use **Node 24 LTS** (`nvm use`, if you use nvm). Expo SDK 58 does not list Node 25 as supported.
@@ -35,7 +39,7 @@ Project progress is the average of each contributor’s **latest reported percen
 
 ## Internet-connected APK and hosting
 
-See [cloud deployment status and instructions](docs/CLOUD-DEPLOYMENT.md). The Android app connects directly to Supabase, with Firebase-backed Android notifications. Vercel is optional for the web dashboard. Backend connection details are configured at build time; team members never enter a hosting URL. It does not need the same Wi-Fi as the development computer. Native Android push uses Firebase resources in the APK and a server-only FCM credential in Supabase.
+See [cloud deployment status and instructions](docs/CLOUD-DEPLOYMENT.md). The Android app connects directly to Supabase, with Firebase-backed Android notifications. The web dashboard is hosted on the owner’s Vercel project at https://alphacoders-six.vercel.app. Backend connection details are configured at build time; team members never enter a hosting URL. It does not need the same Wi-Fi as the development computer. Native Android push uses Firebase resources in the APK and a server-only FCM credential in Supabase.
 
 ## Connect live accounts and team data
 

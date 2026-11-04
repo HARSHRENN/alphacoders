@@ -6,7 +6,7 @@ The native APK contains its JavaScript bundle. It does not require Metro, a comp
 
 ## Deployment status
 
-- Deployment target: create or connect `alphacoders` in the repository owner’s own Vercel account. No live deployment is configured in this repository.
+- Production web app: https://alphacoders-six.vercel.app, deployed to `alphacoders` in the owner’s `harshren-bachhavs-projects` Vercel team. Public root, deep routes, and `/app-config.json` return HTTP 200 without Vercel authentication. The connected MCP account is a different account and was not used to deploy.
 - `vercel.json` prepares the dashboard export and `app-config.json` public connection metadata.
 - Firebase project `alphacoders-593b1` is on Spark. Email/Password signup is enabled, and its public JS SDK client is registered.
 - Supabase project `jrvqllgpuhzwyswwmpka` has all three migrations applied (2026-11-04), including the private Firebase identity mapping. All eight application tables have RLS enabled; anonymous workspace access remains blocked.
@@ -32,6 +32,8 @@ Build command: `npm run build:hosted`; output: `dist/web`. The build fails if cl
 After deployment, verify that `/app-config.json` returns JSON without requiring Vercel authentication. The public production website must expose only its login/UI/configuration; private workspace records remain behind Supabase authentication. Test login, join, two-account updates, and founder authorization before distributing to the team.
 
 ## APK
+
+The signed Android build is distributed at https://alphacoders-six.vercel.app/downloads/alphacoders.apk. Its SHA-256 and version/size metadata are published alongside it as `/downloads/alphacoders.apk.sha256` and `/downloads/build.json`. The checked-in `releases/` build is copied into the hosted output only after its checksum passes; private signing material stays ignored.
 
 `npm run apk:local` generates native directories through Expo, builds a release APK with its embedded JS bundle, signs it with a unique local key, verifies the signature, and writes `artifacts/alphacoders.apk` plus a SHA-256 file.
 

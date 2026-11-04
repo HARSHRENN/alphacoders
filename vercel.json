@@ -7,6 +7,14 @@
   "cleanUrls": true,
   "rewrites": [{ "source": "/:path*", "destination": "/" }],
   "headers": [
+    {
+      "source": "/downloads/alphacoders.apk",
+      "headers": [
+        { "key": "Content-Type", "value": "application/vnd.android.package-archive" },
+        { "key": "Content-Disposition", "value": "attachment; filename=\"alphacoders.apk\"" },
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    },
     { "source": "/app-config.json", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
     { "source": "/:path*", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }] }
   ]
