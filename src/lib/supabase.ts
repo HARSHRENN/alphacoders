@@ -28,7 +28,4 @@ function makeClient(url: string, key: string) {
     },
   });
 }
-export let supabase = url && key ? makeClient(url, key) : null;
-export function configureSupabase(url: string, key: string) {
-  supabase = makeClient(url, key);
-}
+export const supabase = url && key ? makeClient(url, key) : null;

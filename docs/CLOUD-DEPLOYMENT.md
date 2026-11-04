@@ -1,6 +1,6 @@
 # alphacoders cloud deployment
 
-Current implemented backend: Supabase + Firebase Cloud Messaging, with a Vercel-hosted web frontend for this personal/non-commercial project. A Neon-based backend has been discussed but is not implemented yet.
+Current implemented backend: Supabase + Firebase Cloud Messaging, with an optional Vercel-hosted web frontend. Vercel is not required for the Android app. A Neon-based backend has been discussed but is not implemented yet.
 
 The native APK contains its JavaScript bundle. It does not require Metro, a computer, or the same Wi-Fi after installation. Shared data still requires internet access and a deployed Supabase project.
 
@@ -35,11 +35,11 @@ The build supports ARM64 and ARMv7 phones; it is not an x86 emulator build.
 
 Signing material is saved under ignored `.credentials/` with restricted permissions. Preserve it privately for future updates. Do not distribute signing keys or passwords with the APK.
 
-At first launch, enter the deployed Vercel HTTPS URL into **Company workspace URL**. The app downloads and stores public connection metadata, then opens individual account sign-in. Subsequent launches use the saved configuration. There is no demo entry point or sample data in the application. New workspaces start empty.
+Set the public Supabase URL and publishable/anon key in the build environment before compiling the APK. It then opens account sign-in automatically. Without configuration it shows a clear setup-pending screen; there is no user-entered hosting URL. There is no demo entry point or sample data in the application. New workspaces start empty.
 
 ## Android push
 
-Firebase's Android registration must match `com.pulseteam.app`. Set `GOOGLE_SERVICES_JSON` before generating native directories/building. The Firebase configuration file is required in the native build; entering a workspace URL later cannot add native Firebase resources.
+Firebase's Android registration must match `com.pulseteam.app`. Set `GOOGLE_SERVICES_JSON` before generating native directories/building. The Firebase configuration file is required in the native build; Firebase resources must be present before compiling the APK.
 
 The current implementation uses Expo Push Service backed by FCM. It also needs an EAS project ID and FCM v1 credentials registered for that project. `EXPO_PUBLIC_EAS_PROJECT_ID` is a public ID, not a secret. Server credentials remain in Firebase/EAS, not in the APK or Vercel frontend.
 

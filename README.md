@@ -13,7 +13,7 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:8081. With no configured server, the app shows the company-workspace connection screen. After a real server is connected, sign in or create an account. New workspaces contain no projects or work updates until real users create them. There is no demo mode or sample-data fallback.
+Open http://localhost:8081. With no configured server, the app shows the server-setup-pending screen. After a real server is connected, sign in or create an account. New workspaces contain no projects or work updates until real users create them. There is no demo mode or sample-data fallback.
 
 For Android UI development, use `npm run android` with a compatible emulator or phone. For native notification testing use a development build, not Expo Go. SDK 58 development builds are recommended; see [Expo setup](https://docs.expo.dev/get-started/set-up-your-environment/).
 
@@ -35,7 +35,7 @@ Project progress is the average of each contributor’s **latest reported percen
 
 ## Internet-connected APK and hosting
 
-See [cloud deployment status and instructions](docs/CLOUD-DEPLOYMENT.md). The selected hosting stack is Vercel + Supabase + Firebase for this personal, non-commercial project. The APK has a company-workspace URL setup screen and caches public cloud configuration. It does not need the same Wi-Fi as the development computer. Native Android push also requires Firebase resources in the APK and Expo/FCM project credentials.
+See [cloud deployment status and instructions](docs/CLOUD-DEPLOYMENT.md). The Android app connects directly to Supabase, with Firebase-backed Android notifications. Vercel is optional for the web dashboard. Backend connection details are configured at build time; team members never enter a hosting URL. It does not need the same Wi-Fi as the development computer. Native Android push also requires Firebase resources in the APK and Expo/FCM project credentials.
 
 ## Connect live accounts and team data
 
@@ -66,7 +66,7 @@ npx expo start --dev-client
 npx eas-cli@latest build --platform android --profile preview
 ```
 
-Set the public Supabase/EAS values and `GOOGLE_SERVICES_JSON` in the EAS environment for the build profile. A build configured with no backend values opens the workspace connection screen. `npm run build:android` exports the JS/Hermes bundle; **it does not create an APK**. A locally signed release APK is available at `artifacts/alphacoders.apk`. It has a workspace URL setup screen, but live cloud services are not deployed yet and Firebase configuration is not included in this build. No Play Store release has been generated.
+Set the public Supabase/EAS values and `GOOGLE_SERVICES_JSON` in the EAS environment for the build profile. A build configured with no backend values opens the server-setup-pending screen. `npm run build:android` exports the JS/Hermes bundle; **it does not create an APK**. A locally signed release APK is available at `artifacts/alphacoders.apk`. It opens sign-in automatically when a backend is configured; live cloud services are not deployed yet and Firebase configuration is not included in this build. No Play Store release has been generated.
 
 ## Deploy the reminder worker
 

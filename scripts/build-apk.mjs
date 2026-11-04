@@ -34,4 +34,4 @@ run(signer,['sign','--ks',keystore,'--ks-key-alias','alphacoders','--ks-pass','e
 run(signer,['verify','--verbose',apk]);
 writeFileSync(join(output,'alphacoders.apk.sha256'),createHash('sha256').update(readFileSync(apk)).digest('hex')+'  alphacoders.apk\n');
 console.log('Signed standalone APK: artifacts/alphacoders.apk');
-console.log('Connect it to your deployed workspace URL. Android push still requires Firebase configuration at build time.');
+console.log('Supabase connection details and Firebase resources must be configured before a live release. Team members do not enter a hosting URL.');

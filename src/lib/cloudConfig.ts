@@ -41,18 +41,3 @@ export function validateCloudConfig(value: unknown): CloudConfig {
   if (key.length < 25) throw new Error('The server’s public database key is incomplete.');
   return { version: 1, supabaseUrl: url.origin, supabaseAnonKey: key };
 }
-
-export function workspaceConfigUrl(input: string): string {
-  const url = new URL(input.trim());
-  if (
-    url.protocol !== 'https:' ||
-    url.username ||
-    url.password ||
-    url.search ||
-    url.hash ||
-    ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
-  ) {
-    throw new Error('Enter your hosted workspace HTTPS URL, not a local Wi-Fi address.');
-  }
-  return `${url.origin}/app-config.json`;
-}
