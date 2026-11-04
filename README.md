@@ -2,7 +2,7 @@
 
 An Android-first React Native + Expo app for recurring work check-ins, multiple projects, and founder visibility. Includes a responsive web preview of the same React Native components.
 
-**Status:** Firebase email/password signup and the Supabase Firebase integration are enabled. All three database migrations, the account-access function, notification worker, and minute-by-minute cron schedule are deployed. The signed APK includes public Firebase/Supabase configuration and native Android FCM resources, with no demo data. Saving a replacement server-only Firebase credential is still pending confirmation. Real account signup, cross-phone updates, and notification delivery still need end-to-end testing.
+**Status:** Firebase email/password signup and the Supabase Firebase integration are enabled. All three database migrations, the account-access function, notification worker, and minute-by-minute cron schedule are deployed. The signed APK includes public Firebase/Supabase configuration and native Android FCM resources, with no demo data. The replacement server-only Firebase credential is saved, and the scheduled worker returns HTTP 200 with an empty queue. Real verified-account workspace access, cross-phone updates, and notification delivery still need end-to-end testing.
 
 ## Try it locally
 
