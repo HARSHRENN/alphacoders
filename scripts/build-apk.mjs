@@ -13,7 +13,9 @@ function run(command,args){const result=spawnSync(command,args,{cwd:root,env,std
 if(!existsSync(join(root,'android/gradlew')) || process.argv.includes('--prebuild')) {
  run('npx',['expo','prebuild','--platform','android','--no-install']);
 }
-run(join(root,'android/gradlew'),['-p','android','assembleRelease','--no-daemon','-PreactNativeArchitectures=arm64-v8a,armeabi-v7a']);
+// Gradle does not track Expo's .env files as bundle inputs. Always regenerate
+// the JS bundle so a changed backend configuration cannot reuse a stale APK.
+run(join(root,'android/gradlew'),['-p','android',':app:createBundleReleaseJsAndAssets','--rerun','assembleRelease','--no-daemon','-PreactNativeArchitectures=arm64-v8a,armeabi-v7a']);
 
 // Keep this unique key for future internal updates. Never commit or publish it.
 const credentials=join(root,'.credentials');mkdirSync(credentials,{recursive:true,mode:0o700});

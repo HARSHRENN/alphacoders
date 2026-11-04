@@ -1,6 +1,6 @@
 # alphacoders cloud deployment
 
-Current implemented backend: Supabase + Firebase Cloud Messaging, with an optional Vercel-hosted web frontend. Vercel is not required for the Android app. A Neon-based backend has been discussed but is not implemented yet.
+Current implemented backend: Supabase + Firebase Cloud Messaging, with an optional Vercel-hosted web frontend. Vercel is not required for the Android app.
 
 The native APK contains its JavaScript bundle. It does not require Metro, a computer, or the same Wi-Fi after installation. Shared data still requires internet access and a deployed Supabase project.
 
@@ -8,12 +8,15 @@ The native APK contains its JavaScript bundle. It does not require Metro, a comp
 
 - Deployment target: create or connect `alphacoders` in the repository owner’s own Vercel account. No live deployment is configured in this repository.
 - `vercel.json` prepares the dashboard export and `app-config.json` public connection metadata.
-- Supabase and Firebase account connections are still required before live provisioning and notification verification.
+- The Supabase project `jrvqllgpuhzwyswwmpka` is provisioned. The schema was applied on 2026-11-04 and all six application tables have RLS enabled. Anonymous workspace reads are blocked. Email/password signup is enabled with email confirmation required.
+- The local app and APK are configured with this project's public connection values through ignored `.env.local`. These values are not included in Git; other build environments must configure them separately.
+- Custom SMTP and confirmation redirect configuration are still required for team signup. Supabase's default email sender only delivers to project team addresses. Email confirmation remains enabled at the owner's request.
+- Firebase, Expo push credentials, the notification worker, and its cron schedule still need configuration and delivery verification.
 - A standalone release APK has been built at `artifacts/alphacoders.apk` and signed with a unique local key. APK Signature Scheme v2 and v3 verification passed. The APK has not been tested on a physical phone. Firebase resources were not available at build time, so a later build with Firebase configuration is required for live push notifications.
 
 ## Supabase
 
-1. Connect the Supabase integration. Use a free project with email/password auth.
+1. Create or connect a Supabase project with email/password auth.
 2. Apply `supabase/migrations/202611040001_pulse.sql`.
 3. Configure the `notify` Edge Function and its `CRON_SECRET` in Supabase, deploy it, and schedule `supabase/schedule.sql`. The scheduler runs in Supabase, independently of the website host.
 4. Set only the public project URL and publishable/anon key as `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in Vercel.

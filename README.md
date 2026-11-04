@@ -2,7 +2,7 @@
 
 An Android-first React Native + Expo app for recurring work check-ins, multiple projects, and founder visibility. Includes a responsive web preview of the same React Native components.
 
-**Status:** The APK and frontend are built, with no demo mode. Live account creation and shared data require a configured backend. The current code targets Supabase; the proposed Neon migration is not implemented yet. Importing this repository into Vercel alone does not enable live accounts.
+**Status:** The APK and frontend are built, with no demo mode. The live Supabase schema is applied and the local APK contains its public connection settings. Team signup still needs confirmation email delivery and redirect setup. Firebase push and the scheduled notification worker are not configured yet. Importing this repository into Vercel alone does not enable these services.
 
 ## Try it locally
 
@@ -66,7 +66,7 @@ npx expo start --dev-client
 npx eas-cli@latest build --platform android --profile preview
 ```
 
-Set the public Supabase/EAS values and `GOOGLE_SERVICES_JSON` in the EAS environment for the build profile. A build configured with no backend values opens the server-setup-pending screen. `npm run build:android` exports the JS/Hermes bundle; **it does not create an APK**. A locally signed release APK is available at `artifacts/alphacoders.apk`. It opens sign-in automatically when a backend is configured; live cloud services are not deployed yet and Firebase configuration is not included in this build. No Play Store release has been generated.
+Set the public Supabase/EAS values and `GOOGLE_SERVICES_JSON` in the EAS environment for the build profile. A build configured with no backend values opens the server-setup-pending screen. `npm run build:android` exports the JS/Hermes bundle; **it does not create an APK**. A locally signed release APK is available at `artifacts/alphacoders.apk`. The current local build contains the live Supabase public settings and opens sign-in automatically. Firebase configuration is not included in this build. No Play Store release has been generated.
 
 ## Deploy the reminder worker
 
@@ -104,6 +104,6 @@ npm run build:android
 
 Automated tests execute the actual migration in embedded Postgres (PGlite): workspace isolation, role restrictions, authorship, revision integrity, founder notifications, check-in/deadline scheduling, deduplication, job leases, archival, and co-founder promotion. Domain tests cover date boundaries, progress aggregation, validation, and daily reports.
 
-Browser verification covers demo form validation, publishing updates, project creation/search, reminder preferences, member role controls, revision history, and persistence. Native Android push delivery and live Supabase authentication require your configured services and a physical device and have not been verified here.
+Automated tests cover tenant isolation, role enforcement, update revisions, reminder scheduling, and input validation. Browser verification confirms the configured app opens sign-in. Real account signup, two-phone shared updates, and native Android push delivery have not been verified end-to-end.
 
 Source: `src/app/` (Expo Router routes and root providers), `App.tsx` (shell), `src/Screens.tsx` (screens), `src/components/` (shared UI/forms), `src/store.tsx` (state and cloud operations), `src/lib/notifications.ts` (device notification setup), `supabase/` (backend and scheduler).
