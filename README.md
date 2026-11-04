@@ -2,7 +2,7 @@
 
 An Android-first React Native + Expo app for recurring work check-ins, multiple projects, and founder visibility. Includes a responsive web preview of the same React Native components.
 
-**Status:** Firebase email/password signup is enabled, the Supabase Firebase integration is connected, and both database migrations are applied. The APK includes public Firebase and Supabase configuration, with no demo data. The deployed `firebase-access` function still needs its server-only Firebase credential before verified accounts can enter workspaces. First-account signup and physical-phone testing remain outstanding. Android push and the scheduled notification worker still need configuration.
+**Status:** Firebase email/password signup and the Supabase Firebase integration are enabled. All three database migrations, the account-access function, notification worker, and minute-by-minute cron schedule are deployed. The signed APK includes public Firebase/Supabase configuration and native Android FCM resources, with no demo data. Saving a replacement server-only Firebase credential is still pending confirmation. Real account signup, cross-phone updates, and notification delivery still need end-to-end testing.
 
 ## Try it locally
 
@@ -35,12 +35,12 @@ Project progress is the average of each contributor’s **latest reported percen
 
 ## Internet-connected APK and hosting
 
-See [cloud deployment status and instructions](docs/CLOUD-DEPLOYMENT.md). The Android app connects directly to Supabase, with Firebase-backed Android notifications. Vercel is optional for the web dashboard. Backend connection details are configured at build time; team members never enter a hosting URL. It does not need the same Wi-Fi as the development computer. Native Android push also requires Firebase resources in the APK and Expo/FCM project credentials.
+See [cloud deployment status and instructions](docs/CLOUD-DEPLOYMENT.md). The Android app connects directly to Supabase, with Firebase-backed Android notifications. Vercel is optional for the web dashboard. Backend connection details are configured at build time; team members never enter a hosting URL. It does not need the same Wi-Fi as the development computer. Native Android push uses Firebase resources in the APK and a server-only FCM credential in Supabase.
 
 ## Connect live accounts and team data
 
 1. Enable Firebase Authentication's Email/Password provider. Register a Firebase web SDK client (the same JS SDK supports Android) and configure the four `EXPO_PUBLIC_FIREBASE_*` values from `.env.example`. This project uses `alphacoders-593b1`.
-2. Apply both migrations in order from `supabase/migrations/`. The second preserves application UUIDs and maps Firebase string UIDs through a private identity table. It requires a verified email and pins the Firebase issuer/audience to this project's ID. For another Firebase project, update that ID in the second migration and the `firebase-access` server function before deploying.
+2. Apply all three migrations in order from `supabase/migrations/`. The second preserves application UUIDs and maps Firebase string UIDs through a private identity table. It requires a verified email and pins the Firebase issuer/audience to this project's ID. For another Firebase project, update that ID in the second migration and the `firebase-access` server function before deploying.
 3. Add Firebase as a Third-Party Auth provider in Supabase using your Firebase project ID. Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` to the public URL and **publishable/anon** key. Never put service-role or Firebase private keys in app configuration.
 4. Deploy `supabase/functions/firebase-access/index.ts` with `verify_jwt=false`. It independently verifies Google's Firebase JWT signature, issuer, audience, expiry and email status, checks the account is enabled, and assigns only the database `authenticated` claim. Store the Firebase service-account JSON in Supabase Edge Function Secrets as `FIREBASE_SERVICE_ACCOUNT`. It needs `firebaseauth.users.get` and `firebaseauth.users.update`. Its credential stays server-only. Firebase's default verification and reset emails require no separate SMTP provider.
 5. Restart Expo. Create a real account, confirm your email, and tap **I verified my email**. Create a workspace; its creator becomes a founder.
@@ -50,45 +50,42 @@ Database policies enforce workspace boundaries, founder-only project creation/ar
 
 ## Enable real Android push notifications
 
-Remote push requires an installed Android development or preview build, a physical phone, an Expo/EAS project, and Firebase FCM v1 credentials. Expo Go does not support remote Android notifications. Follow the official [Expo push setup](https://docs.expo.dev/push-notifications/push-notifications-setup/) and [FCM credentials guide](https://docs.expo.dev/push-notifications/fcm-credentials/).
+Remote push requires an installed Android build, a physical phone, and Firebase FCM v1 credentials on the backend. This app registers native FCM tokens directly; an EAS project and Expo Push Service are not required for new installs. Expo Go does not support this flow.
 
-1. Link an EAS project using `npx eas-cli@latest init`. Set `EXPO_PUBLIC_EAS_PROJECT_ID` in `.env.local` and in the EAS build environment to that project's ID. This app config reads that environment variable explicitly.
-2. Create a Firebase Android app for `com.pulseteam.app` (or change the package in `app.config.ts` before registering). Download `google-services.json`; point `GOOGLE_SERVICES_JSON` to its local path, or use an EAS file environment variable for cloud builds. The file is ignored by Git.
-3. Configure your FCM v1 service account in EAS credentials. Keep that private service-account key on the server/EAS, never in the app bundle.
-4. Deploy the notification worker described below.
-5. Build and install the app. In Settings, enable work update notifications and choose the cadence. Grant Android notification permission. Each device registers its Expo push token. Founders should enable notifications too.
+1. Register the Firebase Android app with package `com.pulseteam.app` (or change the package in `app.config.ts` before registering). Download `google-services.json`; point `GOOGLE_SERVICES_JSON` to its local path or use a file environment variable for cloud builds. The file is ignored by Git.
+2. Save the Firebase service-account JSON as the server-only Supabase Edge Function secret `FIREBASE_SERVICE_ACCOUNT`. It needs Firebase Authentication user read/update access for account claims and Firebase Messaging send access for push. Never put it in Git, app environment variables, or the APK. Revoke any exposed key before saving a replacement.
+3. Apply the migrations, deploy the functions, and install the schedule below.
+4. Build and install the app. In Settings, enable work update notifications, select the cadence, and grant Android notification permission. Each Android device registers its own FCM token. Founders should enable notifications too.
 
 ```sh
-# Development build, with native notification support
-npx eas-cli@latest build --platform android --profile development
-npx expo start --dev-client
+# Locally signed standalone APK, including native Firebase resources
+npm run apk:local -- --prebuild
 
-# Installable preview APK
+# Optional cloud-built preview APK
 npx eas-cli@latest build --platform android --profile preview
 ```
 
-Set the public Firebase/Supabase/EAS values and `GOOGLE_SERVICES_JSON` in the EAS environment for the build profile. A build missing backend configuration opens the server-setup-pending screen. `npm run build:android` exports the JS/Hermes bundle; **it does not create an APK**. The locally signed APK at `artifacts/alphacoders.apk` includes the live public authentication settings. Native Android FCM resources are not included yet. No Play Store release has been generated.
+Set the public Firebase/Supabase values and `GOOGLE_SERVICES_JSON` in the build environment. A build missing backend configuration opens the server-setup-pending screen. `npm run build:android` exports the JS/Hermes bundle; **it does not create an APK**. The locally signed APK at `artifacts/alphacoders.apk` includes the live public authentication settings and Android FCM resources. No Play Store release has been generated.
 
 ## Deploy the reminder worker
 
-The server owns recurring reminders so they continue while the app is closed. The included Supabase Edge Function accepts only POST requests with the `x-cron-secret` header. Its platform JWT gate is disabled because cron uses a separate server-only shared secret; the function enforces that secret itself.
+The server owns recurring reminders so they continue while the app is closed. The worker accepts only POST requests carrying a private, one-use invocation ticket. The database creates a random ticket each minute; only the service-role worker can consume it, and unused tickets expire after five minutes. No extra shared cron secret is required. Both functions enforce their own authentication with Supabase's legacy JWT gate disabled.
 
 ```sh
 npx supabase login
 npx supabase link --project-ref YOUR_PROJECT_REF
-npx supabase secrets set CRON_SECRET=YOUR_RANDOM_32_BYTE_SECRET
-# Optional: if Expo push access-token security is enabled for your EAS project
-npx supabase secrets set EXPO_ACCESS_TOKEN=YOUR_EXPO_SERVER_ACCESS_TOKEN
-npx supabase functions deploy notify
+# Save FIREBASE_SERVICE_ACCOUNT privately in the Supabase dashboard.
+npx supabase functions deploy firebase-access --no-verify-jwt
+npx supabase functions deploy notify --no-verify-jwt
 ```
 
-Replace the placeholders in `supabase/schedule.sql` and run it in the Supabase SQL editor. Use the **same** random CRON_SECRET in Vault and function secrets. This invokes the worker every minute with pg_cron + pg_net. See [Supabase scheduling docs](https://supabase.com/docs/guides/functions/schedule-functions).
+Run `supabase/schedule.sql` in the Supabase SQL editor after applying all migrations. For another project, update the function URL in the schedule. The schedule invokes the worker every minute with pg_cron + pg_net. See [Supabase scheduling docs](https://supabase.com/docs/guides/functions/schedule-functions).
 
 - Check-ins stay anchored to the member's join time, rounded to a minute, at their selected interval; submitting an update does not move the next deadline.
 - A warning is queued five minutes before each check-in; a due reminder is queued at the boundary. All opted-in workspace members receive project deadline warnings, including founders.
-- Event keys prevent duplicate jobs across cron ticks. Workers lease jobs for two minutes, retry transient failures up to five attempts, and remove tokens rejected as DeviceNotRegistered.
+- Event keys prevent duplicate jobs across cron ticks. Workers lease jobs for two minutes, retry transient failures up to five attempts, and remove unregistered device tokens.
 - The scheduler catches events up to four minutes late; outages longer than this can miss a scheduled warning. Push delivery is best-effort and can be delayed by Android, network conditions, or FCM. It is not an exact-alarm service.
-- `notification_jobs.status = 'sent'` means accepted by the Expo gateway or skipped for a disabled user/no token; it does **not** confirm handset delivery. This initial worker does not poll Expo push receipts. Monitor job failures and add receipt tracking before a large rollout.
+- `notification_jobs.status = 'sent'` means accepted by FCM (or the legacy Expo gateway), or skipped for a disabled user/no token. It does **not** confirm handset delivery. Legacy Expo tokens remain supported; Expo receipts are not polled.
 - Retries are at-least-once; a partial multi-device failure can repeat an already accepted push. There is no exactly-once handset delivery guarantee.
 - Signing out removes registered tokens for that account and cancels legacy local preview schedules.
 
@@ -105,6 +102,6 @@ npm run build:android
 
 Automated tests execute the actual migration in embedded Postgres (PGlite): workspace isolation, role restrictions, authorship, revision integrity, founder notifications, check-in/deadline scheduling, deduplication, job leases, archival, and co-founder promotion. Domain tests cover date boundaries, progress aggregation, validation, and daily reports.
 
-Firebase migration tests additionally reject anonymous, unverified and wrong-project claims, enforce private UID mapping, prevent impersonation and cross-workspace reads, and preserve revision notifications and founder promotion. Browser verification covers Firebase-backed sign-in, signup and reset screens. The deployed access function rejects missing/forged tokens and wrong HTTP methods. Real account signup, two-phone shared updates, and native Android push delivery have not been verified end-to-end.
+Firebase migration tests additionally reject anonymous, unverified and wrong-project claims, enforce private UID mapping, prevent impersonation and cross-workspace reads, and preserve revision notifications and founder promotion. Browser verification covers Firebase-backed sign-in, signup and reset screens. The deployed access function rejects missing/forged tokens and wrong HTTP methods. The notification worker also rejects missing or invalid invocation tickets. Real account signup, two-phone shared updates, and native Android push delivery have not been verified end-to-end.
 
 Source: `src/app/` (Expo Router routes and root providers), `App.tsx` (shell), `src/Screens.tsx` (screens), `src/components/` (shared UI/forms), `src/store.tsx` (state and cloud operations), `src/lib/notifications.ts` (device notification setup), `supabase/` (backend and scheduler).

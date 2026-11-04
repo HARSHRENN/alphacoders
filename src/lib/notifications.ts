@@ -1,14 +1,11 @@
 import { Platform } from 'react-native';
-import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import { Profile } from '../types';
 import { supabase } from './supabase';
 
 export async function enableNotifications(profile: Profile) {
-  if (Platform.OS === 'web')
-    throw new Error(
-      'Android notifications require an installed development build. You can explore the rest of the app here.',
-    );
+  if (Platform.OS !== 'android')
+    throw new Error('Work reminders are available in the installed Android app.');
   const N = await import('expo-notifications');
   N.setNotificationHandler({
     handleNotification: async () => ({
@@ -41,13 +38,11 @@ async function registerPushToken(userId: string) {
   });
   if (!Device.isDevice)
     throw new Error('Use a physical Android device to register team push notifications.');
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-  if (!projectId)
-    throw new Error('Add your EAS project ID and Android FCM configuration first. See README.');
-  const token = (await N.getExpoPushTokenAsync({ projectId })).data;
+  const token = (await N.getDevicePushTokenAsync()).data;
+  if (typeof token !== 'string') throw new Error('Android push registration failed. Please retry.');
   const { error } = await supabase!
     .from('push_tokens')
-    .upsert({ user_id: userId, token }, { onConflict: 'token' });
+    .upsert({ user_id: userId, token, provider: 'fcm' }, { onConflict: 'token' });
   if (error) throw error;
 }
 export async function cancelNotifications() {
@@ -59,7 +54,7 @@ export async function cancelNotifications() {
 
 // Refresh a previously authorized device token without opening a permission prompt.
 export async function syncPushRegistration(userId: string) {
-  if (Platform.OS === 'web' || !Device.isDevice) return;
+  if (Platform.OS !== 'android' || !Device.isDevice) return;
   const N = await import('expo-notifications');
   const permission = await N.getPermissionsAsync();
   if (permission.granted) await registerPushToken(userId);

@@ -11,7 +11,11 @@ test('Firebase identities enforce verification, project trust, membership and ro
     create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$;
     create function auth.uid() returns uuid language sql stable as $$ select nullif(auth.jwt()->>'sub','')::uuid $$;
     grant usage on schema auth,public to authenticated,anon; grant execute on function auth.jwt(),auth.uid() to authenticated,anon;`);
-  for (const migration of ['202611040001_pulse.sql', '202611040002_firebase_auth.sql']) {
+  for (const migration of [
+    '202611040001_pulse.sql',
+    '202611040002_firebase_auth.sql',
+    '202611040003_fcm_delivery.sql',
+  ]) {
     await db.exec(
       await readFile(new URL(`../supabase/migrations/${migration}`, import.meta.url), 'utf8'),
     );
@@ -149,6 +153,62 @@ test('Firebase identities enforce verification, project trust, membership and ro
       (await as({ ...member, aud: 'other-project' }, 'select count(*)::int n from public.profiles'))
         .rows[0].n,
       0,
+    );
+  });
+  await t.test('FCM registration is self-only and legacy Expo tokens remain valid', async () => {
+    await as(member, "insert into public.push_tokens(token,user_id,provider) values($1,$2,'fcm')", [
+      'nativeFCMToken_1234567890:abc',
+      memberId,
+    ]);
+    await as(member, 'insert into public.push_tokens(token,user_id) values($1,$2)', [
+      'ExpoPushToken[legacy-device]',
+      memberId,
+    ]);
+    assert.equal((await as(member, 'select count(*)::int n from public.push_tokens')).rows[0].n, 2);
+    await assert.rejects(
+      as(founder, "insert into public.push_tokens(token,user_id,provider) values($1,$2,'fcm')", [
+        'anotherFCMToken_1234567890:abc',
+        memberId,
+      ]),
+      /row-level security/,
+    );
+    await assert.rejects(
+      as(
+        member,
+        "insert into public.push_tokens(token,user_id,provider) values('short',$1,'fcm')",
+        [memberId],
+      ),
+      /check constraint/,
+    );
+  });
+  await t.test('cron tickets are private, expire, and can be consumed only once', async () => {
+    const ticket = (
+      await db.query('insert into public.notification_runs default values returning id')
+    ).rows[0].id;
+    await assert.rejects(as(member, 'select * from public.notification_runs'), /permission denied/);
+    await assert.rejects(
+      as(member, 'select public.consume_notification_run($1)', [ticket]),
+      /permission denied/,
+    );
+    assert.equal(
+      (await as({}, 'select public.consume_notification_run($1) ok', [ticket], 'service_role'))
+        .rows[0].ok,
+      true,
+    );
+    assert.equal(
+      (await as({}, 'select public.consume_notification_run($1) ok', [ticket], 'service_role'))
+        .rows[0].ok,
+      false,
+    );
+    const expired = (
+      await db.query(
+        "insert into public.notification_runs(created_at) values(now()-interval '6 minutes') returning id",
+      )
+    ).rows[0].id;
+    assert.equal(
+      (await as({}, 'select public.consume_notification_run($1) ok', [expired], 'service_role'))
+        .rows[0].ok,
+      false,
     );
   });
   await db.close();
