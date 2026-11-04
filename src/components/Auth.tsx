@@ -3,11 +3,18 @@ import { View, Text, Pressable, ScrollView, useWindowDimensions } from 'react-na
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button, Field, ErrorText, Icon, C, s, Tag } from './ui';
 import { useStore } from '../store';
-import { supabase } from '../lib/supabase';
+import { supabase, ensureDatabaseAccess } from '../lib/supabase';
+import { firebaseAuth, authError } from '../lib/firebase';
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+} from 'firebase/auth';
 export function Auth() {
-  const { session, refresh, leave } = useStore();
+  const { session, refresh, leave, reloadAccount, error: connectionError } = useStore();
   const { width } = useWindowDimensions();
-  const [mode, setMode] = useState<'login' | 'signup'>('login'),
+  const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login'),
     [email, setEmail] = useState(''),
     [password, setPassword] = useState(''),
     [name, setName] = useState(''),
@@ -22,12 +29,19 @@ export function Auth() {
     setMessage('');
     setBusy(true);
     try {
-      if (!supabase)
+      if (!supabase || !firebaseAuth)
         throw new Error(
           'Your workspace server is not connected yet. Connect the server before creating an account.',
         );
       if (session) {
+        if (!session.user.emailVerified) {
+          await reloadAccount();
+          if (!firebaseAuth.currentUser?.emailVerified)
+            throw new Error('Open the verification email first, then tap “I verified my email”.');
+          return;
+        }
         if (!name.trim()) throw new Error('Enter your full name.');
+        await ensureDatabaseAccess();
         const { error: e } = await supabase.rpc(
           joining ? 'join_workspace' : 'create_workspace',
           joining
@@ -38,18 +52,19 @@ export function Auth() {
         await refresh();
       } else if (mode === 'signup') {
         if (password.length < 8) throw new Error('Use at least 8 characters for your password.');
-        const { data, error: e } = await supabase.auth.signUp({ email: email.trim(), password });
-        if (e) throw e;
-        if (!data.session) setMessage('Check your email to confirm your account, then sign in.');
+        const { user } = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password);
+        setPassword('');
+        await sendEmailVerification(user);
+        setMessage('Verification email sent. Check your inbox and spam folder.');
+      } else if (mode === 'reset') {
+        await sendPasswordResetEmail(firebaseAuth, email.trim());
+        setMessage('If an account exists for this address, you’ll receive a password reset email.');
       } else {
-        const { error: e } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        if (e) throw e;
+        await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
+        setPassword('');
       }
     } catch (e: any) {
-      setError(e.message);
+      setError(authError(e));
     } finally {
       setBusy(false);
     }
@@ -141,17 +156,44 @@ export function Auth() {
             <Text style={s.eyebrow}>YOUR TEAM’S NEXT CHAPTER</Text>
             <Text style={[s.title, { marginTop: 12, marginBottom: 10 }]}>
               {session
-                ? 'Make yourself at home'
+                ? session.user.emailVerified
+                  ? 'Make yourself at home'
+                  : 'Check your inbox.'
                 : mode === 'login'
                   ? 'Welcome to your workday.'
-                  : 'A better way to work.'}
+                  : mode === 'reset'
+                    ? 'Let’s get you back in.'
+                    : 'A better way to work.'}
             </Text>
             <Text style={[s.body, { marginBottom: 30 }]}>
               {session
-                ? 'Create your team workspace or join with a founder’s invite code.'
+                ? session.user.emailVerified
+                  ? 'Create your team workspace or join with a founder’s invite code.'
+                  : `Verify ${session.user.email} before creating or joining a workspace.`
                 : 'Clear updates. Connected teams. A calmer way to get things done.'}
             </Text>
-            {session ? (
+            {session && !session.user.emailVerified ? (
+              <View style={{ marginBottom: 18 }}>
+                <Button
+                  title="Resend verification email"
+                  secondary
+                  loading={busy}
+                  onPress={async () => {
+                    setBusy(true);
+                    setError('');
+                    try {
+                      if (firebaseAuth?.currentUser)
+                        await sendEmailVerification(firebaseAuth.currentUser);
+                      setMessage('Verification email sent. Check your inbox and spam folder.');
+                    } catch (e) {
+                      setError(authError(e));
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                />
+              </View>
+            ) : session ? (
               <>
                 <View style={[s.chips, { marginBottom: 24 }]}>
                   {['Create workspace', 'Join team'].map((t, i) => (
@@ -191,49 +233,70 @@ export function Auth() {
                   keyboardType="email-address"
                   placeholder="you@company.com"
                 />
-                <Field
-                  label="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  placeholder="At least 8 characters"
-                />
+                {mode !== 'reset' ? (
+                  <Field
+                    label="Password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    placeholder="At least 8 characters"
+                  />
+                ) : null}
               </>
             )}
-            <ErrorText text={error} />
+            <ErrorText text={error || connectionError} />
             {message ? (
               <Text style={[s.body, { color: C.green, marginBottom: 18 }]}>{message}</Text>
             ) : null}
             <Button
               title={
                 session
-                  ? joining
-                    ? 'Join workspace'
-                    : 'Create workspace'
+                  ? !session.user.emailVerified
+                    ? 'I verified my email'
+                    : joining
+                      ? 'Join workspace'
+                      : 'Create workspace'
                   : mode === 'login'
                     ? 'Sign in'
-                    : 'Create account'
+                    : mode === 'reset'
+                      ? 'Send reset email'
+                      : 'Create account'
               }
               icon="arrow-forward"
               onPress={submit}
               loading={busy}
             />
             {!session ? (
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  setMode(mode === 'login' ? 'signup' : 'login');
-                  setError('');
-                  setMessage('');
-                }}
-                style={{ paddingVertical: 20 }}
-              >
-                <Text style={[s.body, { textAlign: 'center' }]}>
-                  {mode === 'login'
-                    ? 'New here? Create an account'
-                    : 'Already have an account? Sign in'}
-                </Text>
-              </Pressable>
+              <>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setMode(mode === 'login' ? 'signup' : 'login');
+                    setError('');
+                    setMessage('');
+                  }}
+                  style={{ paddingVertical: 20 }}
+                >
+                  <Text style={[s.body, { textAlign: 'center' }]}>
+                    {mode === 'login'
+                      ? 'New here? Create an account'
+                      : 'Already have an account? Sign in'}
+                  </Text>
+                </Pressable>
+                {mode === 'login' ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => {
+                      setMode('reset');
+                      setError('');
+                      setMessage('');
+                    }}
+                    style={{ paddingBottom: 20 }}
+                  >
+                    <Text style={[s.body, { textAlign: 'center' }]}>Forgot password?</Text>
+                  </Pressable>
+                ) : null}
+              </>
             ) : (
               <View style={{ marginTop: 18 }}>
                 <Button

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
+import { firebaseAuth } from '../lib/firebase';
 import { cancelNotifications } from '../lib/notifications';
 import { Card, Icon, Tag, C, s } from './ui';
 
@@ -14,7 +15,7 @@ export function CloudGate({ children }: { children: React.ReactNode }) {
     ]).catch(() => {});
   }, []);
 
-  if (supabase) return <>{children}</>;
+  if (supabase && firebaseAuth) return <>{children}</>;
 
   return (
     <ScrollView

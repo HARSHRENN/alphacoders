@@ -1,6 +1,6 @@
 # alphacoders cloud deployment
 
-Current implemented backend: Supabase + Firebase Cloud Messaging, with an optional Vercel-hosted web frontend. Vercel is not required for the Android app.
+Current backend: Firebase Authentication + Supabase data, with Firebase Cloud Messaging planned for Android push. Vercel is optional for a web frontend and is not required for Android.
 
 The native APK contains its JavaScript bundle. It does not require Metro, a computer, or the same Wi-Fi after installation. Shared data still requires internet access and a deployed Supabase project.
 
@@ -8,19 +8,22 @@ The native APK contains its JavaScript bundle. It does not require Metro, a comp
 
 - Deployment target: create or connect `alphacoders` in the repository owner’s own Vercel account. No live deployment is configured in this repository.
 - `vercel.json` prepares the dashboard export and `app-config.json` public connection metadata.
-- The Supabase project `jrvqllgpuhzwyswwmpka` is provisioned. The schema was applied on 2026-11-04 and all six application tables have RLS enabled. Anonymous workspace reads are blocked. Email/password signup is enabled with email confirmation required.
+- Firebase project `alphacoders-593b1` is on Spark. Email/Password signup is enabled, and its public JS SDK client is registered.
+- Supabase project `jrvqllgpuhzwyswwmpka` has both migrations applied (2026-11-04), including the private Firebase identity mapping. All seven application tables have RLS enabled; anonymous workspace access remains blocked.
+- Supabase's Firebase Third-Party Auth integration is enabled for `alphacoders-593b1` with the owner's explicit approval.
 - The local app and APK are configured with this project's public connection values through ignored `.env.local`. These values are not included in Git; other build environments must configure them separately.
-- Custom SMTP and confirmation redirect configuration are still required for team signup. Supabase's default email sender only delivers to project team addresses. Email confirmation remains enabled at the owner's request.
-- Firebase, Expo push credentials, the notification worker, and its cron schedule still need configuration and delivery verification.
+- The `firebase-access` Edge Function is deployed. It validates Google's Firebase ID tokens itself (`verify_jwt=false` for Supabase's legacy-secret gate). Missing/forged tokens return 401 and unsupported methods return 405. It requires the server-only `FIREBASE_SERVICE_ACCOUNT` secret, whose creation/entry is handed to the owner. This step is still pending confirmation in the project secret list.
+- Firebase's built-in verification and password-reset emails replace the previous SMTP plan; Brevo and Gmail SMTP are not required.
+- First real signup/verification, Android FCM resources, Expo push credentials, the notification worker, and its cron schedule still need configuration or end-to-end verification.
 - A standalone release APK has been built at `artifacts/alphacoders.apk` and signed with a unique local key. APK Signature Scheme v2 and v3 verification passed. The APK has not been tested on a physical phone. Firebase resources were not available at build time, so a later build with Firebase configuration is required for live push notifications.
 
 ## Supabase
 
-1. Create or connect a Supabase project with email/password auth.
-2. Apply `supabase/migrations/202611040001_pulse.sql`.
+1. Create or connect a Supabase project and Firebase Authentication project with email/password auth.
+2. Apply both SQL files in `supabase/migrations/` in order. Configure Firebase Third-Party Auth and the `firebase-access` function and secret as described in README.
 3. Configure the `notify` Edge Function and its `CRON_SECRET` in Supabase, deploy it, and schedule `supabase/schedule.sql`. The scheduler runs in Supabase, independently of the website host.
 4. Set only the public project URL and publishable/anon key as `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in Vercel.
-5. Configure auth confirmation email delivery and allowed URLs for the deployed domain.
+5. Configure the public Firebase SDK values in the frontend build environment as well. Verify the real Firebase email-confirmation and reset flow.
 
 ## Vercel
 

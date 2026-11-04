@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { AppState } from 'react-native';
-import { Session } from '@supabase/supabase-js';
+import { onIdTokenChanged, reload, signOut, User } from 'firebase/auth';
 import { Data, Profile, Project, UpdateInput } from './types';
-import { supabase } from './lib/supabase';
+import { ensureDatabaseAccess, supabase } from './lib/supabase';
+import { firebaseAuth } from './lib/firebase';
 import { cancelNotifications, syncPushRegistration } from './lib/notifications';
 import { validateUpdate } from './lib/domain';
 
@@ -11,7 +12,8 @@ type Store = {
   me: Profile | null;
   loading: boolean;
   error: string;
-  session: Session | null;
+  session: { user: { id: string; email: string | null; emailVerified: boolean } } | null;
+  reloadAccount: () => Promise<void>;
   leave: () => Promise<void>;
   refresh: () => Promise<void>;
   clearError: () => void;
@@ -25,20 +27,30 @@ type Store = {
 };
 const Context = createContext<Store>(null!);
 export const useStore = () => useContext(Context);
+function account(user: User | null) {
+  return user
+    ? { user: { id: user.uid, email: user.email, emailVerified: user.emailVerified } }
+    : null;
+}
 export function StoreProvider({ children }: { children: React.ReactNode }) {
+  const accountUid = useRef<string | null>(null);
   const [data, setData] = useState<Data | null>(null),
     [meId, setMeId] = useState('me'),
-    [session, setSession] = useState<Session | null>(null),
-    [loading, setLoading] = useState(!!supabase),
+    [session, setSession] = useState<Store['session']>(null),
+    [loading, setLoading] = useState(!!firebaseAuth),
     [error, setError] = useState('');
   const me = data?.profiles.find((p) => p.id === meId) ?? null;
   const refresh = useCallback(async () => {
-    if (!supabase) return;
-    const {
-      data: { session: s },
-    } = await supabase.auth.getSession();
-    if (!s) return;
-    const result = await supabase.from('profiles').select('*').eq('id', s.user.id).maybeSingle();
+    const user = firebaseAuth?.currentUser;
+    if (!supabase || !user?.emailVerified) return;
+    await ensureDatabaseAccess();
+    const identity = await supabase.rpc('register_identity');
+    if (identity.error) throw identity.error;
+    const result = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', identity.data)
+      .maybeSingle();
     if (result.error) throw result.error;
     if (!result.data) {
       setData(null);
@@ -58,7 +70,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     ]);
     for (const result of [workspace, profiles, projects, updates])
       if (result.error) throw result.error;
-    setMeId(s.user.id);
+    // Never apply a delayed request from an account that has since signed out.
+    if (firebaseAuth?.currentUser?.uid !== user.uid) return;
+    setMeId(identity.data);
     setData({
       workspace: workspace.data,
       profiles: profiles.data!,
@@ -68,27 +82,37 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
   useEffect(() => {
     let mounted = true;
-    if (!supabase) return;
-    supabase.auth.getSession().then(({ data: { session: s }, error: e }) => {
-      if (!mounted) return;
-      setSession(s);
-      if (e) setError(e.message);
-      setLoading(false);
-    });
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
-      if (!mounted) return;
-      setSession(s);
-      if (!s) setData(null);
-    });
+    if (!firebaseAuth) return;
+    const unsubscribe = onIdTokenChanged(
+      firebaseAuth,
+      (user) => {
+        if (!mounted) return;
+        if (accountUid.current !== user?.uid || !user?.emailVerified) setData(null);
+        accountUid.current = user?.uid ?? null;
+        const next = account(user);
+        setSession((previous) =>
+          previous?.user.id === next?.user.id &&
+          previous?.user.emailVerified === next?.user.emailVerified &&
+          previous?.user.email === next?.user.email
+            ? previous
+            : next,
+        );
+        setLoading(false);
+      },
+      (e) => {
+        if (mounted) {
+          setError(e.message);
+          setLoading(false);
+        }
+      },
+    );
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
   useEffect(() => {
-    if (!session) return;
+    if (!session?.user.emailVerified) return;
     Promise.resolve()
       .then(refresh)
       .catch((e) => setError(e.message));
@@ -107,9 +131,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       .subscribe();
     const sub = AppState.addEventListener('change', (s) => {
       if (s === 'active') {
-        supabase?.auth.startAutoRefresh();
         refresh().catch((e) => setError(e.message));
-      } else supabase?.auth.stopAutoRefresh();
+      }
     });
     return () => {
       clearInterval(timer);
@@ -117,6 +140,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (channel) supabase?.removeChannel(channel);
     };
   }, [session, refresh]);
+  async function reloadAccount() {
+    const user = firebaseAuth?.currentUser;
+    if (!user) return;
+    await reload(user);
+    await user.getIdToken(true);
+    setSession(account(user));
+    await refresh();
+  }
   const liveId = me?.notifications_enabled ? me.id : null;
   useEffect(() => {
     if (!liveId) return;
@@ -131,15 +162,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [liveId]);
   async function leave() {
     await cancelNotifications();
-    if (supabase) {
-      const { error: e } = await supabase.from('push_tokens').delete().eq('user_id', meId);
-      if (e) throw e;
-      const { error: signoutError } = await supabase.auth.signOut();
-      if (signoutError) throw signoutError;
+    try {
+      if (supabase && me) {
+        const { error: e } = await supabase.from('push_tokens').delete().eq('user_id', meId);
+        if (e) throw e;
+      }
+    } finally {
+      if (firebaseAuth) await signOut(firebaseAuth);
+      setData(null);
+      setSession(null);
+      setError('');
     }
-    setData(null);
-    setSession(null);
-    setError('');
   }
   async function addUpdate(input: UpdateInput) {
     if (!data || !me) throw new Error('Please sign in.');
@@ -206,6 +239,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         data,
         me,
         session,
+        reloadAccount,
         loading,
         error,
         leave,

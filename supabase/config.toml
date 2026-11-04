@@ -1,3 +1,7 @@
 [functions.notify]
 # This endpoint authenticates only server cron requests using x-cron-secret.
 verify_jwt = false
+
+[functions.firebase-access]
+# Google signature, project, expiry and email verification checked in function.
+verify_jwt = false
