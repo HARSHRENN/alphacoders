@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ export const C = {
   bg: '#f6f8f7',
   white: '#ffffff',
   ink: '#18382f',
-  muted: '#7b8983',
+  muted: '#64766d',
   green: '#246d50',
   mint: '#dff2e8',
   line: '#e7ece8',
@@ -57,14 +57,15 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       disabled={disabled || loading}
       onPress={onPress}
       style={({ pressed }) => [
         s.button,
         secondary && s.secondary,
-        small && { paddingVertical: 10, minHeight: 40 },
+        small && { paddingVertical: 10, minHeight: 44 },
         (disabled || loading) && { opacity: 0.5 },
-        pressed && { opacity: 0.8 },
+        pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
       ]}
     >
       {loading ? (
@@ -138,24 +139,44 @@ export function Field({
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric';
 }) {
+  const [focused, setFocused] = useState(false);
+  const [revealed, setRevealed] = useState(false);
   return (
-    <View style={{ gap: 8, marginBottom: 18 }}>
+    <View style={{ gap: 6, marginBottom: 14 }}>
       <Text style={s.label}>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#9aa69e"
-        multiline={multiline}
-        secureTextEntry={secureTextEntry}
-        keyboardType={keyboardType}
-        autoCapitalize={keyboardType === 'email-address' || secureTextEntry ? 'none' : 'sentences'}
-        style={[s.input, multiline && { minHeight: 96, textAlignVertical: 'top' }]}
-      />
+      <View style={[s.inputShell, focused && { borderColor: C.green, backgroundColor: C.white }]}>
+        <TextInput
+          accessibilityLabel={label}
+          value={value}
+          onChangeText={onChangeText}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder={placeholder}
+          placeholderTextColor="#7f8f85"
+          multiline={multiline}
+          secureTextEntry={secureTextEntry && !revealed}
+          keyboardType={keyboardType}
+          autoCapitalize={
+            keyboardType === 'email-address' || secureTextEntry ? 'none' : 'sentences'
+          }
+          style={[s.input, multiline && { minHeight: 80, textAlignVertical: 'top' }]}
+        />
+        {secureTextEntry ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={revealed ? 'Hide password' : 'Show password'}
+            accessibilityState={{ expanded: revealed }}
+            onPress={() => setRevealed((current) => !current)}
+            style={{ minWidth: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Icon name={revealed ? 'eye-off-outline' : 'eye-outline'} size={20} color={C.muted} />
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }
+
 export function Heading({
   eyebrow,
   title,
@@ -170,12 +191,16 @@ export function Heading({
   const { width } = useWindowDimensions();
   return (
     <View style={[s.heading, width < 600 && { flexDirection: 'column', alignItems: 'flex-start' }]}>
-      <View style={{ flex: 1, gap: 7 }}>
+      <View style={{ flexShrink: 1, minWidth: 0, gap: 5 }}>
         {eyebrow ? <Text style={s.eyebrow}>{eyebrow}</Text> : null}
         <Text style={s.title}>{title}</Text>
         {description ? <Text style={s.body}>{description}</Text> : null}
       </View>
-      {action}
+      {action ? (
+        <View style={width < 600 ? { alignSelf: 'stretch' } : { marginLeft: 'auto' }}>
+          {action}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -189,7 +214,7 @@ export function Section({
   action?: React.ReactNode;
 }) {
   return (
-    <View style={[s.row, { marginBottom: 18, marginTop: 8 }]}>
+    <View style={[s.row, { marginBottom: 12, marginTop: 4 }]}>
       <View style={{ flex: 1, gap: 5 }}>
         <Text style={s.h2}>{title}</Text>
         {subtitle ? <Text style={s.body}>{subtitle}</Text> : null}
@@ -203,7 +228,14 @@ export function Link({ text, onPress }: { text: string; onPress: () => void }) {
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={{ padding: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+      style={({ pressed }) => ({
+        minHeight: 44,
+        padding: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        opacity: pressed ? 0.6 : 1,
+      })}
     >
       <Text style={{ fontSize: 12, fontWeight: '600', color: C.green }}>{text}</Text>
       <Icon name="arrow-forward" size={14} color={C.green} />
@@ -220,12 +252,16 @@ export function Empty({
   action?: React.ReactNode;
 }) {
   return (
-    <Card style={{ alignItems: 'center', padding: 36, gap: 14 }}>
-      <View style={s.emptyIcon}>
-        <Icon name="leaf-outline" color={C.green} size={28} />
+    <Card style={{ gap: 12 }}>
+      <View style={[s.row, { alignItems: 'flex-start' }]}>
+        <View style={s.emptyIcon}>
+          <Icon name="layers-outline" color={C.green} size={22} />
+        </View>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={s.h3}>{title}</Text>
+          <Text style={s.body}>{body}</Text>
+        </View>
       </View>
-      <Text style={s.h2}>{title}</Text>
-      <Text style={[s.body, { textAlign: 'center', maxWidth: 360 }]}>{body}</Text>
       {action}
     </Card>
   );
@@ -243,14 +279,15 @@ export function Sheet({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const { width } = useWindowDimensions();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={s.overlay}>
+      <SafeAreaView style={[s.overlay, width < 600 && { justifyContent: 'flex-end', padding: 8 }]}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={s.modal}
         >
-          <View style={[s.row, { padding: 24, borderBottomWidth: 1, borderColor: C.line }]}>
+          <View style={[s.row, { padding: 16, borderBottomWidth: 1, borderColor: C.line }]}>
             <View style={{ flex: 1, gap: 6 }}>
               <Text style={s.h2}>{title}</Text>
               {subtitle ? <Text style={s.body}>{subtitle}</Text> : null}
@@ -264,7 +301,7 @@ export function Sheet({
               <Icon name="close" />
             </Pressable>
           </View>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16 }}>
             {children}
           </ScrollView>
         </KeyboardAvoidingView>
@@ -288,8 +325,8 @@ export const s = StyleSheet.create({
     backgroundColor: C.white,
     borderWidth: 1,
     borderColor: C.line,
-    borderRadius: 18,
-    padding: 22,
+    borderRadius: 14,
+    padding: 16,
   },
   button: {
     minHeight: 46,
@@ -307,31 +344,39 @@ export const s = StyleSheet.create({
   tag: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 6, alignSelf: 'flex-start' },
   avatar: { alignItems: 'center', justifyContent: 'center' },
   label: { fontSize: 12, fontWeight: '600', color: C.ink },
-  input: {
+  inputShell: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#dfe6e0',
+    borderColor: '#d8e2db',
     backgroundColor: '#fafcfb',
     borderRadius: 10,
-    padding: 14,
-    fontSize: 14,
+    overflow: 'hidden',
+  },
+  input: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 48,
+    padding: 12,
+    fontSize: 15,
     color: C.ink,
   },
   heading: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    marginBottom: 28,
+    gap: 12,
+    marginBottom: 18,
     flexWrap: 'wrap',
   },
-  title: { fontSize: 30, fontWeight: '700', color: C.ink, letterSpacing: -1 },
+  title: { fontSize: 26, fontWeight: '700', color: C.ink, letterSpacing: -1 },
   eyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.7, color: C.muted },
   body: { fontSize: 13, lineHeight: 20, color: C.muted },
   h2: { fontSize: 17, fontWeight: '600', color: C.ink, letterSpacing: -0.3 },
   h3: { fontSize: 14, fontWeight: '600', color: C.ink },
   emptyIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     backgroundColor: C.mint,
     alignItems: 'center',
     justifyContent: 'center',
@@ -352,19 +397,21 @@ export const s = StyleSheet.create({
     overflow: 'hidden',
   },
   iconButton: { padding: 10, borderWidth: 1, borderColor: C.line, borderRadius: 10 },
-  divider: { height: 1, backgroundColor: C.line, marginVertical: 18 },
+  divider: { height: 1, backgroundColor: C.line, marginVertical: 14 },
   small: { fontSize: 11, color: C.muted, lineHeight: 17 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     borderWidth: 1,
     borderColor: C.line,
     borderRadius: 8,
-    paddingHorizontal: 13,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
     paddingVertical: 10,
     backgroundColor: 'white',
   },
   chipActive: { backgroundColor: C.mint, borderColor: '#b3d5c3' },
   chipText: { fontSize: 12, color: C.ink },
   progress: { height: 5, backgroundColor: '#edf1ed', borderRadius: 6, overflow: 'hidden' },
-  space: { marginBottom: 28 },
+  space: { marginBottom: 18 },
 });

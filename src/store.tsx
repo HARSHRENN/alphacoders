@@ -72,6 +72,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (result.error) throw result.error;
     // Never apply a delayed request from an account that has since signed out.
     if (firebaseAuth?.currentUser?.uid !== user.uid) return;
+    setError('');
     setMeId(identity.data);
     setData({
       workspace: workspace.data,

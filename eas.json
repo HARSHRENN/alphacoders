@@ -1,8 +1,32 @@
 {
- "cli":{"version":">=16.0.0"},
- "build":{
-  "development":{"developmentClient":true,"distribution":"internal"},
-  "preview":{"distribution":"internal","android":{"buildType":"apk"}},
-  "production":{"autoIncrement":true}
- }
+  "cli": {
+    "version": ">=16.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "credentialsSource": "local",
+      "node": "24.11.0",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://jrvqllgpuhzwyswwmpka.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_gxS_pETBMhZtuc-AsPWwCQ_RY3Yc7cL",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDkH-_VijhbufNew4VH9rW7QHPEL-84S2E",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "alphacoders-593b1.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "alphacoders-593b1",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:769429207979:web:76cdc16960001026bd70ee",
+        "GOOGLE_SERVICES_JSON": "./google-services.json"
+      }
+    },
+    "production": {
+      "autoIncrement": true
+    }
+  }
 }

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from './src/store';
+import { MotionView } from './src/components/MotionView';
 import { Auth } from './src/components/Auth';
 import { Overview, Projects, Updates, Team, Settings, ProjectDetail } from './src/Screens';
 import { UpdateForm, ProjectForm } from './src/components/Forms';
@@ -117,7 +118,7 @@ function Workspace() {
         />
         <Text
           style={{
-            fontSize: bottom ? 9 : 13,
+            fontSize: bottom ? 10 : 13,
             color: tab === item.name ? C.green : '#78867d',
             fontWeight: tab === item.name ? '600' : '400',
           }}
@@ -144,7 +145,7 @@ function Workspace() {
       <View style={{ flex: 1, flexDirection: 'row' }}>
         {desktop ? (
           <View style={styles.sidebar}>
-            <View style={[s.row, { paddingHorizontal: 14, marginBottom: 40 }]}>
+            <View style={[s.row, { paddingHorizontal: 14, marginBottom: 24 }]}>
               <View style={styles.logoIcon}>
                 <Icon name="pulse" size={24} color="#e5f5d6" />
               </View>
@@ -182,23 +183,6 @@ function Workspace() {
             <View style={{ gap: 7 }}>{nav()}</View>
             <View style={{ flex: 1 }} />
             <View
-              style={{
-                backgroundColor: '#edf1e7',
-                padding: 16,
-                borderRadius: 13,
-                margin: 8,
-                gap: 8,
-              }}
-            >
-              <Icon name="leaf-outline" color="#78905d" />
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#536c46' }}>
-                A little progress, daily.
-              </Text>
-              <Text style={{ fontSize: 11, lineHeight: 18, color: '#8a977d' }}>
-                Show up. Share an update. Keep growing together.
-              </Text>
-            </View>
-            <View
               style={[
                 s.row,
                 { padding: 14, borderTopWidth: 1, borderColor: C.line, marginTop: 18 },
@@ -222,7 +206,7 @@ function Workspace() {
           </View>
         ) : null}
         <View style={{ flex: 1 }}>
-          <View style={[styles.topbar, { paddingHorizontal: desktop ? 36 : 20 }]}>
+          <View style={[styles.topbar, { paddingHorizontal: desktop ? 24 : 16 }]}>
             <View style={[s.row, { gap: 9 }]}>
               {!desktop ? (
                 <View style={styles.logoIcon}>
@@ -275,9 +259,9 @@ function Workspace() {
             key={tab}
             style={{ flex: 1 }}
             contentContainerStyle={{
-              padding: desktop ? 36 : 20,
-              paddingBottom: 40,
-              maxWidth: 1600,
+              padding: desktop ? 24 : 16,
+              paddingBottom: 24,
+              maxWidth: 1280,
               width: '100%',
               alignSelf: 'center',
             }}
@@ -309,39 +293,24 @@ function Workspace() {
                 <Text style={[s.small, { marginBottom: 12 }]}>Dismiss</Text>
               </Pressable>
             ) : null}
-            {tab === 'Overview' ? (
-              <Overview
-                onUpdate={post}
-                onProject={setProject}
-                onNavigate={setTab}
-                onNewProject={() => setNewProject(true)}
-              />
-            ) : tab === 'Projects' ? (
-              <Projects onProject={setProject} onNewProject={() => setNewProject(true)} />
-            ) : tab === 'Updates' ? (
-              <Updates onUpdate={() => post()} onRevise={revise} />
-            ) : tab === 'Team' ? (
-              <Team />
-            ) : (
-              <Settings />
-            )}
-            <View
-              style={{
-                marginTop: 40,
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                borderTopWidth: 1,
-                borderColor: C.line,
-                paddingTop: 20,
-              }}
-            >
-              <Text style={{ fontSize: 10, color: '#a1aca2' }}>
-                Made for a little more clarity.
-              </Text>
-              <Text style={{ fontSize: 10, color: '#a1aca2' }}>
-                alphacoders · Your team, in sync.
-              </Text>
-            </View>
+            <MotionView key={tab}>
+              {tab === 'Overview' ? (
+                <Overview
+                  onUpdate={post}
+                  onProject={setProject}
+                  onNavigate={setTab}
+                  onNewProject={() => setNewProject(true)}
+                />
+              ) : tab === 'Projects' ? (
+                <Projects onProject={setProject} onNewProject={() => setNewProject(true)} />
+              ) : tab === 'Updates' ? (
+                <Updates onUpdate={() => post()} onRevise={revise} />
+              ) : tab === 'Team' ? (
+                <Team />
+              ) : (
+                <Settings />
+              )}
+            </MotionView>
           </ScrollView>
           {!desktop ? <View style={styles.bottomNav}>{nav(true)}</View> : null}
         </View>
@@ -372,7 +341,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderColor: C.line,
     paddingHorizontal: 14,
-    paddingTop: 34,
+    paddingTop: 24,
   },
   logoIcon: {
     width: 31,
@@ -391,7 +360,7 @@ const styles = StyleSheet.create({
     borderColor: C.line,
     borderRadius: 10,
     padding: 10,
-    marginBottom: 32,
+    marginBottom: 20,
   },
   navItem: {
     flexDirection: 'row',
@@ -403,7 +372,7 @@ const styles = StyleSheet.create({
   },
   navActive: { backgroundColor: '#eaf0e4' },
   topbar: {
-    height: 72,
+    minHeight: 56,
     borderBottomWidth: 1,
     borderColor: C.line,
     backgroundColor: '#fcfdfb',

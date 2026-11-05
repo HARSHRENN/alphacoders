@@ -47,3 +47,6 @@ google-services.json
 .credentials/
 artifacts/
 .vercel/
+
+# Local EAS signing credentials
+/credentials.json

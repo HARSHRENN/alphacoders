@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, TextInput, useWindowDimensions, Share, Switch } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useStore } from './store';
 import { Project, WorkUpdate } from './types';
 import {
@@ -42,130 +41,98 @@ type Navigation = {
 export function Overview({ onUpdate, onProject, onNavigate, onNewProject }: Navigation) {
   const { data, me } = useStore();
   const { width } = useWindowDimensions();
-  const wide = width > 1150;
+  const wide = width >= 1100;
   const now = useClock();
-  const projects = data!.projects.filter((p) => !p.archived),
-    today = data!.updates.filter((u) => isToday(u.created_at)),
-    blocked = latestUpdates(data!.updates).filter((u) => u.blocker),
-    reporters = new Set(today.map((u) => u.user_id));
+  const projects = data!.projects.filter((p) => !p.archived);
+  const today = data!.updates.filter((u) => isToday(u.created_at));
+  const blocked = latestUpdates(data!.updates).filter(
+    (u) => u.blocker && projects.some((p) => p.id === u.project_id),
+  );
+  const reporters = new Set(today.map((u) => u.user_id));
   const due = nextDue(me!.reminder_anchor, me!.cadence, now);
   const minutes = Math.ceil((due - now) / 60000);
   const name = me!.name.split(' ')[0];
   const hour = new Date().getHours();
+  const founder = me!.role === 'founder';
   return (
     <>
       <Heading
-        eyebrow="A LITTLE CLARITY FOR YOUR DAY"
-        title={`Good ${hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening'}, ${name} ☀`}
-        description="Here’s how your team is moving things forward."
-        action={<Button title="Post an update" icon="add" onPress={() => onUpdate()} />}
+        eyebrow={data!.workspace.name.toUpperCase()}
+        title={`Good ${hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening'}, ${name}`}
+        description="See what’s done, what’s next, and who needs help."
+        action={
+          projects.length ? (
+            <Button title="Post work update" icon="add" onPress={() => onUpdate()} />
+          ) : founder ? (
+            <Button title="Create first project" icon="add" onPress={onNewProject} />
+          ) : undefined
+        }
       />
-      <View style={{ flexDirection: wide ? 'row' : 'column', gap: 18, marginBottom: 26 }}>
-        <LinearGradient
-          colors={['#e2efdf', '#eef4e8']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ flex: 1, padding: 25, borderRadius: 18, overflow: 'hidden', minHeight: 177 }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ flex: 1 }}>
-              <Text style={[s.eyebrow, { color: '#5d7e58', fontSize: 9 }]}>
-                IN SYNC, EVERY STEP OF THE WAY
-              </Text>
-              <Text
-                style={{
-                  fontSize: 23,
-                  fontWeight: '600',
-                  color: C.ink,
-                  letterSpacing: -0.6,
-                  marginTop: 12,
-                }}
-              >
-                Big things start with{wide ? '\n' : ' '}small updates.
-              </Text>
-              <Text style={[s.body, { marginTop: 10, color: '#6f8369', maxWidth: 340 }]}>
-                Keep the momentum going. A quick check-in today makes a clearer path for everyone.
-              </Text>
-            </View>
-            <View
-              style={{
-                width: 100,
-                height: 120,
-                justifyContent: 'flex-end',
-                flexDirection: 'row',
-                gap: 6,
-                alignItems: 'flex-end',
-                transform: [{ rotate: '-8deg' }],
-              }}
-            >
-              {[45, 72, 104].map((h, i) => (
-                <View
-                  key={h}
-                  style={{
-                    height: h,
-                    width: 25,
-                    backgroundColor: ['#bdcfa4', '#97b985', '#3b704c'][i],
-                    borderRadius: 7,
-                  }}
-                />
-              ))}
-            </View>
+      <Card
+        style={{
+          backgroundColor: '#193f32',
+          borderColor: '#193f32',
+          marginBottom: 12,
+          gap: 12,
+          flexDirection: wide ? 'row' : 'column',
+          alignItems: wide ? 'center' : undefined,
+        }}
+      >
+        <View style={[s.row, { alignItems: 'flex-start', flex: wide ? 1 : undefined }]}>
+          <View style={{ backgroundColor: '#ffffff15', padding: 10, borderRadius: 12 }}>
+            <Icon name="alarm-outline" color="#c2e59a" />
           </View>
-        </LinearGradient>
-        <Card
-          style={{
-            width: wide ? 285 : '100%',
-            backgroundColor: '#193f32',
-            borderColor: '#193f32',
-            padding: 22,
-          }}
-        >
-          <View style={[s.row, { justifyContent: 'space-between' }]}>
-            <Text style={{ fontSize: 10, letterSpacing: 1.2, color: '#b1c7b9', fontWeight: '600' }}>
-              YOUR NEXT CHECK-IN
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={{ color: '#c6d9ce', fontSize: 12 }}>Next work update</Text>
+            <Text style={{ color: 'white', fontSize: 23, fontWeight: '700' }}>
+              In {minutes} min{' '}
+              <Text style={{ color: '#c6d9ce', fontSize: 13, fontWeight: '400' }}>
+                · {timeLabel(new Date(due).toISOString())}
+              </Text>
             </Text>
-            <Icon name="alarm-outline" color="#bbdf9d" size={20} />
-          </View>
-          <Text
-            style={{
-              fontSize: 34,
-              letterSpacing: -1,
-              color: 'white',
-              fontWeight: '600',
-              marginTop: 13,
-            }}
-          >
-            {minutes}
-            <Text style={{ fontSize: 16, color: '#b8ccbf', fontWeight: '400' }}> min</Text>
-          </Text>
-          <Text style={{ fontSize: 11, color: '#adc4b4', marginTop: 5 }}>
-            Every {me!.cadence} hour{me!.cadence > 1 ? 's' : ''} ·{' '}
-            {timeLabel(new Date(due).toISOString())}
-          </Text>
-          <View style={[s.row, { marginTop: 15, gap: 6 }]}>
-            <View
-              style={{
-                width: 5,
-                height: 5,
-                borderRadius: 4,
-                backgroundColor: me!.notifications_enabled ? '#c1e5a3' : '#dcba7c',
-              }}
-            />
-            <Text style={{ fontSize: 10, color: '#c4d7c9' }}>
-              {me!.notifications_enabled
-                ? '5-minute heads-up enabled'
-                : 'Enable reminders in Settings'}
+            <Text style={{ color: '#c6d9ce', fontSize: 12 }}>
+              Report the last {me!.cadence} hour{me!.cadence > 1 ? 's' : ''}: completed work,
+              remaining tasks, and ETA.
             </Text>
           </View>
-        </Card>
-      </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginBottom: 28 }}>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onNavigate('Settings')}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 7,
+            minHeight: 44,
+            borderTopWidth: wide ? 0 : 1,
+            borderLeftWidth: wide ? 1 : 0,
+            width: wide ? 270 : undefined,
+            borderColor: '#ffffff20',
+            paddingTop: wide ? 0 : 8,
+            paddingLeft: wide ? 16 : 0,
+            opacity: pressed ? 0.65 : 1,
+          })}
+        >
+          <Icon
+            name={me!.notifications_enabled ? 'notifications-outline' : 'notifications-off-outline'}
+            color="#c2e59a"
+            size={16}
+          />
+          <Text style={{ color: '#e1eee6', fontSize: 12, flex: 1 }}>
+            {me!.notifications_enabled
+              ? 'Reminders on · 5-minute warning included'
+              : 'Reminders are off · Tap to enable'}
+          </Text>
+          <Icon name="chevron-forward" color="#c2e59a" size={16} />
+        </Pressable>
+      </Card>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18 }}>
         {[
           {
             label: 'Active projects',
-            value: projects.length,
+            value: projects.filter((p) => projectProgress(p.id, data!.updates) < 100).length,
             icon: 'layers-outline' as const,
-            note: 'Ideas turning into action',
+            tab: 'Projects',
             color: '#6b5cce',
             bg: '#f1eefb',
           },
@@ -173,132 +140,203 @@ export function Overview({ onUpdate, onProject, onNavigate, onNewProject }: Navi
             label: 'Updates today',
             value: today.length,
             icon: 'chatbox-ellipses-outline' as const,
-            note: `From ${reporters.size} team members`,
-            color: '#3f8360',
-            bg: '#eaf3e9',
+            tab: 'Updates',
+            color: C.green,
+            bg: C.mint,
           },
           {
-            label: 'Team check-ins',
+            label: 'Checked in today',
             value: `${reporters.size}/${data!.profiles.length}`,
             icon: 'people-outline' as const,
-            note: 'People who checked in today',
-            color: '#5887a8',
+            tab: 'Team',
+            color: '#416f96',
             bg: '#edf3f9',
           },
           {
-            label: 'Needs attention',
+            label: 'Open blockers',
             value: blocked.length,
             icon: 'flag-outline' as const,
-            note: 'Open blockers to work through',
-            color: '#bb8540',
+            tab: 'Updates',
+            color: '#9c681c',
             bg: '#fff3df',
           },
         ].map((item) => (
-          <Card
+          <Pressable
             key={item.label}
-            style={{ flex: 1, minWidth: width < 600 ? '44%' : 170, padding: 19 }}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.label}: ${item.value}. Open ${item.tab}`}
+            onPress={() => onNavigate(item.tab)}
+            style={({ pressed }) => ({
+              flexGrow: 1,
+              flexBasis: width < 600 ? '46%' : '22%',
+              opacity: pressed ? 0.7 : 1,
+              transform: [{ scale: pressed ? 0.98 : 1 }],
+            })}
           >
-            <View style={[s.row, { justifyContent: 'space-between' }]}>
-              <Text style={{ fontSize: 11, color: C.muted, flex: 1 }}>{item.label}</Text>
-              <View style={{ padding: 7, borderRadius: 9, backgroundColor: item.bg }}>
-                <Icon name={item.icon} color={item.color} size={17} />
+            <Card style={{ gap: 9 }}>
+              <View style={[s.row, { justifyContent: 'space-between' }]}>
+                <View style={{ padding: 7, backgroundColor: item.bg, borderRadius: 9 }}>
+                  <Icon name={item.icon} color={item.color} size={18} />
+                </View>
+                <Text style={{ fontSize: 25, fontWeight: '700', color: C.ink }}>{item.value}</Text>
               </View>
-            </View>
-            <Text
-              style={{
-                fontSize: 28,
-                fontWeight: '600',
-                color: C.ink,
-                marginTop: 8,
-                letterSpacing: -1,
-              }}
-            >
-              {item.value}
-            </Text>
-            <Text style={[s.small, { fontSize: 10, marginTop: 7 }]}>{item.note}</Text>
-          </Card>
+              <View style={[s.row, { gap: 4 }]}>
+                <Text style={{ fontSize: 12, color: C.muted, flex: 1 }}>{item.label}</Text>
+                <Icon name="chevron-forward" size={12} color={C.muted} />
+              </View>
+            </Card>
+          </Pressable>
         ))}
       </View>
-      <Section
-        title="Projects in motion"
-        subtitle="A shared view of what’s taking shape."
-        action={<Link text="All projects" onPress={() => onNavigate('Projects')} />}
-      />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 30 }}>
-        {projects.slice(0, 3).map((p) => (
-          <ProjectCard key={p.id} project={p} onPress={() => onProject(p)} />
-        ))}
-        {!projects.length ? (
-          <View style={{ flex: 1 }}>
-            <Empty
-              title="Your next chapter starts here"
-              body="Create a project so your team has a place to share progress."
-              action={
-                me!.role === 'founder' ? (
-                  <Button title="Create project" onPress={onNewProject} />
-                ) : undefined
-              }
-            />
+      {!data!.projects.length ? (
+        <Card style={{ marginBottom: 18, gap: 4 }}>
+          <Text style={s.h2}>Get your workspace ready</Text>
+          <Text style={[s.body, { marginBottom: 8 }]}>
+            {founder
+              ? 'Start a project, invite your team, then share your first update.'
+              : 'Your founder will add projects. Enable reminders while you wait.'}
+          </Text>
+          <View style={{ flexDirection: wide ? 'row' : 'column', gap: wide ? 16 : 0 }}>
+            {[
+              ...(founder
+                ? [
+                    {
+                      label: 'Create a project',
+                      detail: 'Set a goal, priority, and deadline',
+                      done: false,
+                      action: onNewProject,
+                      icon: 'layers-outline' as const,
+                    },
+                    {
+                      label: 'Invite teammates',
+                      detail: `${data!.profiles.length} member${data!.profiles.length === 1 ? '' : 's'} in this workspace`,
+                      done: data!.profiles.length > 1,
+                      action: () => onNavigate('Team'),
+                      icon: 'people-outline' as const,
+                    },
+                  ]
+                : []),
+              {
+                label: 'Enable reminders',
+                detail: 'Choose a 1-hour or 2-hour check-in',
+                done: me!.notifications_enabled,
+                action: () => onNavigate('Settings'),
+                icon: 'notifications-outline' as const,
+              },
+            ].map((step) => (
+              <Pressable
+                key={step.label}
+                accessibilityRole="button"
+                onPress={step.action}
+                style={({ pressed }) => [
+                  s.row,
+                  {
+                    flex: wide ? 1 : undefined,
+                    minHeight: 64,
+                    paddingVertical: 8,
+                    borderTopWidth: 1,
+                    borderColor: C.line,
+                    opacity: pressed ? 0.65 : 1,
+                  },
+                ]}
+              >
+                <Icon name={step.done ? 'checkmark-circle' : step.icon} color={C.green} size={22} />
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Text style={s.h3}>{step.label}</Text>
+                  <Text style={s.small}>{step.detail}</Text>
+                </View>
+                <Icon name="chevron-forward" color={C.muted} size={16} />
+              </Pressable>
+            ))}
           </View>
-        ) : null}
-      </View>
-      <View style={{ flexDirection: wide ? 'row' : 'column', gap: 24 }}>
-        <View style={{ flex: 1 }}>
+        </Card>
+      ) : (
+        <>
           <Section
-            title="The latest from your team"
-            subtitle="Small wins, next steps, and everything in between."
-            action={<Link text="All updates" onPress={() => onNavigate('Updates')} />}
+            title="Your projects"
+            action={<Link text="View all" onPress={() => onNavigate('Projects')} />}
           />
-          <View style={{ gap: 12 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
+            {projects.slice(0, 3).map((p) => (
+              <View
+                key={p.id}
+                style={{ flexGrow: 1, flexBasis: wide ? '30%' : '100%', minWidth: 0 }}
+              >
+                <ProjectCard project={p} onPress={() => onProject(p)} />
+              </View>
+            ))}
+            {!projects.length ? (
+              <View style={{ flex: 1 }}>
+                <Empty
+                  title="All projects archived"
+                  body="Open Projects to restore one or create a new project."
+                  action={
+                    <Button
+                      title="View projects"
+                      secondary
+                      onPress={() => onNavigate('Projects')}
+                    />
+                  }
+                />
+              </View>
+            ) : null}
+          </View>
+        </>
+      )}
+      <View style={{ flexDirection: wide ? 'row' : 'column', gap: 12 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Section
+            title="Recent updates"
+            action={<Link text="View all" onPress={() => onNavigate('Updates')} />}
+          />
+          <View style={{ gap: 10 }}>
             {data!.updates.slice(0, 3).map((u) => (
               <UpdateCard key={u.id} update={u} compact />
             ))}
             {!data!.updates.length ? (
-              <Empty title="A fresh start" body="Your team’s first update will appear here." />
+              <Empty
+                title="No work updates yet"
+                body={
+                  projects.length
+                    ? 'Share what you completed, what remains, and when you’ll finish.'
+                    : 'Work updates will appear here after a project is created.'
+                }
+                action={
+                  projects.length ? (
+                    <Button title="Post first update" secondary onPress={() => onUpdate()} />
+                  ) : undefined
+                }
+              />
             ) : null}
           </View>
         </View>
-        <View style={{ width: wide ? 285 : '100%' }}>
-          <Section title="A little team pulse" subtitle="Today’s check-in activity." />
-          <Card style={{ gap: 20 }}>
+        <View style={{ width: wide ? 280 : '100%' }}>
+          <Section title="Today’s team activity" />
+          <Card style={{ gap: 12 }}>
             {data!.profiles.slice(0, 5).map((p) => {
               const last = today.find((u) => u.user_id === p.id);
               return (
                 <View key={p.id} style={s.row}>
                   <Avatar name={p.name} color={p.avatar} size={34} />
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <Text style={{ fontSize: 12, color: C.ink, fontWeight: '600' }}>
+                  <View style={{ flex: 1, gap: 3 }}>
+                    <Text style={s.h3}>
                       {p.name}
                       {p.id === me!.id ? ' (you)' : ''}
                     </Text>
-                    <Text style={{ fontSize: 10, color: C.muted }}>
-                      {last ? relative(last.created_at) : 'No check-in yet today'}
+                    <Text style={s.small}>
+                      {last ? relative(last.created_at) : 'No update today'}
                     </Text>
                   </View>
                   <Icon
                     name={last ? 'checkmark-circle' : 'time-outline'}
-                    color={last ? '#79a77a' : '#c2c9bf'}
+                    color={last ? C.green : C.orange}
                     size={18}
                   />
                 </View>
               );
             })}
-            <View style={{ height: 1, backgroundColor: C.line }} />
-            <Link text="Meet your team" onPress={() => onNavigate('Team')} />
+            <Link text="View team" onPress={() => onNavigate('Team')} />
           </Card>
-          <View
-            style={{ padding: 18, marginTop: 14, borderRadius: 14, backgroundColor: '#eef1e8' }}
-          >
-            <View style={[s.row, { gap: 7, marginBottom: 7 }]}>
-              <Icon name="sparkles-outline" size={14} color="#7c8b60" />
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#697853' }}>
-                A good habit, together
-              </Text>
-            </View>
-            <Text style={{ fontSize: 11, lineHeight: 18, color: '#849075' }}>
-              A quick update takes a minute. The clarity it brings lasts much longer.
-            </Text>
-          </View>
         </View>
       </View>
     </>
@@ -309,32 +347,37 @@ export function Projects({
   onNewProject,
 }: Pick<Navigation, 'onProject' | 'onNewProject'>) {
   const { data, me } = useStore();
+  const { width } = useWindowDimensions();
   const [filter, setFilter] = useState('Active'),
     [search, setSearch] = useState('');
   const projects = data!.projects.filter(
     (p) =>
       (filter === 'Archived' ? p.archived : !p.archived) &&
-      (filter !== 'Completed' || projectProgress(p.id, data!.updates) === 100) &&
+      (filter === 'Archived' ||
+        (filter === 'Completed'
+          ? projectProgress(p.id, data!.updates) === 100
+          : projectProgress(p.id, data!.updates) < 100)) &&
       p.name.toLowerCase().includes(search.toLowerCase()),
   );
   return (
     <>
       <Heading
-        eyebrow="FROM IDEA TO IMPACT"
-        title="A place for every project."
-        description="Keep the big picture clear, and the little details connected."
+        eyebrow="WORKSPACE"
+        title="Projects"
+        description="Track progress, priorities, and deadlines."
         action={
           me!.role === 'founder' ? (
             <Button title="New project" icon="add" onPress={onNewProject} />
           ) : undefined
         }
       />
-      <View style={[s.row, { marginBottom: 24, flexWrap: 'wrap' }]}>
-        <View style={[s.chips, { flex: 1 }]}>
+      <View style={[s.row, { marginBottom: 16, flexWrap: 'wrap' }]}>
+        <View style={[s.chips, { flexGrow: 1 }]}>
           {['Active', 'Completed', 'Archived'].map((t) => (
             <Pressable
               accessibilityRole="button"
               key={t}
+              accessibilityState={{ selected: filter === t }}
               onPress={() => setFilter(t)}
               style={[s.chip, filter === t && s.chipActive]}
             >
@@ -351,6 +394,7 @@ export function Projects({
               borderColor: C.line,
               borderRadius: 10,
               paddingHorizontal: 12,
+              flexGrow: width < 600 ? 1 : 0,
               gap: 8,
             },
           ]}
@@ -362,21 +406,41 @@ export function Projects({
             onChangeText={setSearch}
             placeholder="Find a project…"
             placeholderTextColor={C.muted}
-            style={{ paddingVertical: 13, color: C.ink, fontSize: 12, minWidth: 150 }}
+            style={{ paddingVertical: 13, color: C.ink, fontSize: 12, minWidth: 120, flex: 1 }}
           />
         </View>
       </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 18 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {projects.map((p) => (
-          <View key={p.id} style={{ flexGrow: 1, flexBasis: 280, maxWidth: 420 }}>
+          <View
+            key={p.id}
+            style={{
+              flexGrow: 1,
+              flexBasis: width < 600 ? '100%' : '46%',
+              maxWidth: width < 600 ? undefined : 540,
+            }}
+          >
             <ProjectCard project={p} onPress={() => onProject(p)} />
           </View>
         ))}
       </View>
       {!projects.length ? (
         <Empty
-          title="Nothing here just yet"
-          body="Try a different filter or create your next project."
+          title={search ? 'No matching projects' : `No ${filter.toLowerCase()} projects`}
+          body={
+            search
+              ? 'Try a different name or clear your search.'
+              : me!.role === 'founder'
+                ? 'Create a project to start collecting work updates.'
+                : 'Your founder can create a project for the team.'
+          }
+          action={
+            search ? (
+              <Button title="Clear search" secondary onPress={() => setSearch('')} />
+            ) : me!.role === 'founder' ? (
+              <Button title="Create project" icon="add" onPress={onNewProject} />
+            ) : undefined
+          }
         />
       ) : null}
     </>
@@ -394,7 +458,15 @@ export function Updates({
   const [scope, setScope] = useState('All updates'),
     [project, setProject] = useState('all'),
     [person, setPerson] = useState('all'),
-    [period, setPeriod] = useState('Today');
+    [period, setPeriod] = useState('Today'),
+    [filtersOpen, setFiltersOpen] = useState(false);
+  const filterCount = Number(project !== 'all') + Number(person !== 'all');
+  const resetFilters = () => {
+    setProject('all');
+    setPerson('all');
+    setScope('All updates');
+    setPeriod('Today');
+  };
   const updates = data!.updates.filter(
     (u) =>
       (scope !== 'My updates' || u.user_id === me!.id) &&
@@ -409,9 +481,9 @@ export function Updates({
   return (
     <>
       <Heading
-        eyebrow="PROGRESS, IN THEIR OWN WORDS"
-        title="Every update tells a story."
-        description="What’s done, what’s next, and where a little help goes a long way."
+        eyebrow="TEAM PROGRESS"
+        title="Work updates"
+        description="Completed work, remaining tasks, blockers, and finish times."
         action={<Button title="Post an update" icon="add" onPress={onUpdate} />}
       />
       <View style={[s.chips, { marginBottom: 18 }]}>
@@ -419,6 +491,7 @@ export function Updates({
           <Pressable
             accessibilityRole="button"
             key={t}
+            accessibilityState={{ selected: scope === t }}
             onPress={() => setScope(t)}
             style={[s.chip, scope === t && s.chipActive]}
           >
@@ -426,12 +499,13 @@ export function Updates({
           </Pressable>
         ))}
       </View>
-      <Card style={{ marginBottom: 22, padding: 16, gap: 14 }}>
+      <Card style={{ marginBottom: 14, padding: 12, gap: 10 }}>
         <View style={s.chips}>
           {['Today', '1', '2', 'All time'].map((t) => (
             <Pressable
               accessibilityRole="button"
               key={t}
+              accessibilityState={{ selected: period === t }}
               onPress={() => setPeriod(t)}
               style={[s.chip, period === t && s.chipActive]}
             >
@@ -439,32 +513,57 @@ export function Updates({
             </Pressable>
           ))}
         </View>
-        <View style={s.chips}>
-          {[{ id: 'all', name: 'All projects' }, ...data!.projects].map((p) => (
-            <Pressable
-              accessibilityRole="button"
-              key={p.id}
-              onPress={() => setProject(p.id)}
-              style={[s.chip, project === p.id && s.chipActive]}
-            >
-              <Text style={s.chipText}>{p.name}</Text>
-            </Pressable>
-          ))}
-        </View>
-        {me!.role === 'founder' ? (
-          <View style={s.chips}>
-            {[{ id: 'all', name: 'Everyone' }, ...data!.profiles].map((p) => (
-              <Pressable
-                accessibilityRole="button"
-                key={p.id}
-                onPress={() => setPerson(p.id)}
-                style={[s.chip, person === p.id && s.chipActive]}
-              >
-                <Text style={s.chipText}>{p.name}</Text>
-              </Pressable>
-            ))}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Project and teammate filters"
+          accessibilityState={{ expanded: filtersOpen }}
+          onPress={() => setFiltersOpen((open) => !open)}
+          style={({ pressed }) => [s.row, { minHeight: 44, opacity: pressed ? 0.65 : 1 }]}
+        >
+          <Icon name="options-outline" size={18} color={C.green} />
+          <Text style={[s.h3, { flex: 1 }]}>
+            Filter by project{me!.role === 'founder' ? ' or teammate' : ''}
+            {filterCount ? ` (${filterCount})` : ''}
+          </Text>
+          <Icon name={filtersOpen ? 'chevron-up' : 'chevron-down'} size={16} color={C.muted} />
+        </Pressable>
+        {filtersOpen ? (
+          <View style={{ gap: 10 }}>
+            <Text style={s.label}>Project</Text>
+            <View style={s.chips}>
+              {[{ id: 'all', name: 'All projects' }, ...data!.projects].map((p) => (
+                <Pressable
+                  accessibilityRole="button"
+                  key={p.id}
+                  accessibilityState={{ selected: project === p.id }}
+                  onPress={() => setProject(p.id)}
+                  style={[s.chip, project === p.id && s.chipActive]}
+                >
+                  <Text style={s.chipText}>{p.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+            {me!.role === 'founder' ? (
+              <View style={{ gap: 8 }}>
+                <Text style={s.label}>Teammate</Text>
+                <View style={s.chips}>
+                  {[{ id: 'all', name: 'Everyone' }, ...data!.profiles].map((p) => (
+                    <Pressable
+                      accessibilityRole="button"
+                      key={p.id}
+                      accessibilityState={{ selected: person === p.id }}
+                      onPress={() => setPerson(p.id)}
+                      style={[s.chip, person === p.id && s.chipActive]}
+                    >
+                      <Text style={s.chipText}>{p.name}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : null}
           </View>
         ) : null}
+        {filterCount ? <Link text="Clear filters" onPress={resetFilters} /> : null}
       </Card>
       <Text style={[s.small, { marginBottom: 14 }]}>
         {updates.length} update{updates.length === 1 ? '' : 's'} · Latest first
@@ -476,8 +575,13 @@ export function Updates({
       </View>
       {!updates.length ? (
         <Empty
-          title="A moment of quiet"
-          body="No updates match these filters. Your next check-in could be the first."
+          title="No updates to show"
+          body="Try another period or clear the filters. Your team’s next update will appear here."
+          action={
+            scope !== 'All updates' || period !== 'Today' || filterCount ? (
+              <Button title="Reset filters" secondary onPress={resetFilters} />
+            ) : undefined
+          }
         />
       ) : null}
     </>
@@ -485,6 +589,7 @@ export function Updates({
 }
 export function Team() {
   const { data, me, promote } = useStore();
+  const { width } = useWindowDimensions();
   const [error, setError] = useState('');
   const [candidate, setCandidate] = useState<string | null>(null);
   const invite = async () => {
@@ -499,9 +604,9 @@ export function Team() {
   return (
     <>
       <Heading
-        eyebrow="GOOD WORK IS A TEAM SPORT"
-        title="The people behind the progress."
-        description="A shared rhythm. A little accountability. A team that moves together."
+        eyebrow="YOUR WORKSPACE"
+        title="Team"
+        description="Manage teammates and see who has checked in today."
         action={
           me!.role === 'founder' ? (
             <Button title="Invite your team" icon="person-add-outline" onPress={invite} />
@@ -510,11 +615,11 @@ export function Team() {
       />
       <ErrorText text={error} />
       {me!.role === 'founder' ? (
-        <Card style={{ marginBottom: 24, backgroundColor: '#edf3e9' }}>
+        <Card style={{ marginBottom: 16, backgroundColor: '#edf3e9' }}>
           <View style={[s.row, { flexWrap: 'wrap' }]}>
             <Icon name="link-outline" color={C.green} />
             <View style={{ flex: 1, minWidth: 180, gap: 5 }}>
-              <Text style={s.h3}>Make room for your people.</Text>
+              <Text style={s.h3}>Share your workspace invite code</Text>
               <Text style={s.body}>
                 {`Invite code: ${data!.workspace.invite_code} · New members get their own login.`}
               </Text>
@@ -523,16 +628,23 @@ export function Team() {
           </View>
         </Card>
       ) : null}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 18 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {data!.profiles.map((p) => {
           const updates = data!.updates.filter((u) => u.user_id === p.id && isToday(u.created_at));
           const projects = new Set(
             data!.updates.filter((u) => u.user_id === p.id).map((u) => u.project_id),
           );
           return (
-            <Card key={p.id} style={{ flexBasis: 250, flexGrow: 1, maxWidth: 380, padding: 24 }}>
-              <View style={[s.row, { justifyContent: 'space-between', marginBottom: 20 }]}>
-                <Avatar name={p.name} color={p.avatar} size={50} />
+            <Card
+              key={p.id}
+              style={{
+                flexBasis: width < 600 ? '100%' : 280,
+                flexGrow: 1,
+                maxWidth: width < 600 ? undefined : 420,
+              }}
+            >
+              <View style={[s.row, { justifyContent: 'space-between', marginBottom: 12 }]}>
+                <Avatar name={p.name} color={p.avatar} size={40} />
                 <Tag
                   text={p.role === 'founder' ? 'Founder' : 'Member'}
                   bg={p.role === 'founder' ? C.mint : '#f1f3f1'}
@@ -561,7 +673,7 @@ export function Team() {
                   <Text style={s.small}>Projects contributed</Text>
                 </View>
               </View>
-              <View style={[s.row, { marginTop: 22, gap: 7 }]}>
+              <View style={[s.row, { marginTop: 12, gap: 7 }]}>
                 <Icon
                   name={updates.length ? 'checkmark-circle' : 'time-outline'}
                   size={15}
@@ -593,7 +705,7 @@ export function Team() {
         subtitle="Co-founders can manage projects, invite teammates, and view all team updates."
         onClose={() => setCandidate(null)}
       >
-        <Text style={[s.body, { marginBottom: 20 }]}>
+        <Text style={[s.body, { marginBottom: 12 }]}>
           Give {data!.profiles.find((p) => p.id === candidate)?.name} founder access to{' '}
           {data!.workspace.name}?
         </Text>
@@ -631,11 +743,11 @@ export function Settings() {
   return (
     <>
       <Heading
-        eyebrow="MAKE ALPHACODERS YOUR OWN"
-        title="A rhythm that works for you."
-        description="Your account, your notifications, and a few thoughtful preferences."
+        eyebrow="YOUR ACCOUNT"
+        title="Settings"
+        description="Manage your account and work reminders."
       />
-      <View style={{ maxWidth: 760, gap: 20 }}>
+      <View style={{ maxWidth: 760, gap: 14 }}>
         <Card>
           <View style={s.row}>
             <Avatar name={me!.name} color={me!.avatar} size={52} />
@@ -654,8 +766,8 @@ export function Settings() {
         </Card>
         <Card>
           <Section
-            title="Keep the updates flowing"
-            subtitle="A gentle reminder to share your progress."
+            title="Work reminders"
+            subtitle="Choose when to report your completed and remaining work."
           />
           <View style={[s.row, { justifyContent: 'space-between', marginVertical: 12 }]}>
             <View style={{ flex: 1, gap: 6 }}>
@@ -681,6 +793,7 @@ export function Settings() {
                 key={n}
                 accessibilityRole="button"
                 disabled={busy}
+                accessibilityState={{ selected: me!.cadence === n }}
                 onPress={() => change(n, me!.notifications_enabled)}
                 style={[s.chip, me!.cadence === n && s.chipActive]}
               >
@@ -716,7 +829,7 @@ export function Settings() {
         {me!.role === 'founder' ? (
           <Card>
             <Section
-              title="Take the big picture with you"
+              title="Daily work report"
               subtitle="Share today’s completed work, remaining tasks, blockers, and ETAs."
             />
             <Button
@@ -759,7 +872,7 @@ export function ProjectDetail({
   return (
     <Sheet visible={!!p} onClose={onClose} title={p.name} subtitle={p.description}>
       <ErrorText text={error} />
-      <View style={[s.row, { justifyContent: 'space-between', marginBottom: 20 }]}>
+      <View style={[s.row, { justifyContent: 'space-between', marginBottom: 12 }]}>
         <Tag text={current.archived ? 'Archived' : p.priority + ' priority'} />
         <Text style={s.body}>
           Due {dateLabel(p.deadline)}, {timeLabel(p.deadline)}

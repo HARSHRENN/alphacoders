@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useStore } from '../store';
-import { Button, Field, Sheet, ErrorText, s, Icon } from './ui';
+import { Button, Field, Sheet, ErrorText, Empty, s, Icon } from './ui';
 import { WorkUpdate } from '../types';
 export function localDate(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
@@ -59,15 +59,29 @@ export function UpdateForm({
       setBusy(false);
     }
   }
+  if (!data?.projects.some((p) => !p.archived))
+    return (
+      <Sheet visible={visible} onClose={onClose} title="Add a project first">
+        <Empty
+          title="No active projects"
+          body={
+            me?.role === 'founder'
+              ? 'Create a project in the Projects tab, then post your work update here.'
+              : 'Ask your founder to create a project before posting an update.'
+          }
+          action={<Button title="Got it" onPress={onClose} />}
+        />
+      </Sheet>
+    );
   return (
     <Sheet
       visible={visible}
       onClose={onClose}
-      title={revision ? 'Revise your update' : 'A little update. A lot of clarity.'}
-      subtitle="Let your team know how things are moving."
+      title={revision ? 'Revise your update' : 'Post work update'}
+      subtitle="Share completed work, what remains, and when you’ll finish."
     >
       <Text style={[s.label, { marginBottom: 10 }]}>Project</Text>
-      <View style={[s.chips, { marginBottom: 22 }]}>
+      <View style={[s.chips, { marginBottom: 14 }]}>
         {data?.projects
           .filter((p) => !p.archived)
           .map((p) => (
@@ -75,6 +89,7 @@ export function UpdateForm({
               key={p.id}
               accessibilityRole="button"
               disabled={!!revision}
+              accessibilityState={{ selected: project === p.id, disabled: !!revision }}
               onPress={() => setProject(p.id)}
               style={[s.chip, project === p.id && s.chipActive]}
             >
@@ -83,11 +98,12 @@ export function UpdateForm({
           ))}
       </View>
       <Text style={[s.label, { marginBottom: 10 }]}>Reporting period</Text>
-      <View style={[s.chips, { marginBottom: 22 }]}>
+      <View style={[s.chips, { marginBottom: 14 }]}>
         {[1, 2].map((n) => (
           <Pressable
             key={n}
             accessibilityRole="button"
+            accessibilityState={{ selected: period === n }}
             onPress={() => setPeriod(n)}
             style={[s.chip, period === n && s.chipActive]}
           >
@@ -123,11 +139,12 @@ export function UpdateForm({
         onChangeText={setProgress}
         keyboardType="numeric"
       />
-      <View style={[s.chips, { marginTop: -8, marginBottom: 22 }]}>
+      <View style={[s.chips, { marginTop: -8, marginBottom: 14 }]}>
         {[0, 25, 50, 75, 100].map((n) => (
           <Pressable
             key={n}
             accessibilityRole="button"
+            accessibilityState={{ selected: Number(progress) === n }}
             onPress={() => setProgress(String(n))}
             style={[s.chip, Number(progress) === n && s.chipActive]}
           >
@@ -140,7 +157,7 @@ export function UpdateForm({
         value={eta}
         onChangeText={setEta}
       />
-      <View style={[s.chips, { marginTop: -8, marginBottom: 22 }]}>
+      <View style={[s.chips, { marginTop: -8, marginBottom: 14 }]}>
         {[2, 4, 24].map((h) => (
           <Pressable
             key={h}
@@ -199,8 +216,8 @@ export function ProjectForm({ visible, onClose }: { visible: boolean; onClose: (
     <Sheet
       visible={visible}
       onClose={onClose}
-      title="Make room for your next big thing."
-      subtitle="Create a project and give your team a clear direction."
+      title="Create project"
+      subtitle="Add a goal, priority, and deadline for the team."
     >
       <Field
         label="Project name *"
@@ -220,11 +237,12 @@ export function ProjectForm({ visible, onClose }: { visible: boolean; onClose: (
         onChangeText={setDeadline}
       />
       <Text style={[s.label, { marginBottom: 10 }]}>Priority</Text>
-      <View style={[s.chips, { marginBottom: 22 }]}>
+      <View style={[s.chips, { marginBottom: 14 }]}>
         {(['Low', 'Medium', 'High'] as const).map((p) => (
           <Pressable
             key={p}
             accessibilityRole="button"
+            accessibilityState={{ selected: priority === p }}
             onPress={() => setPriority(p)}
             style={[s.chip, priority === p && s.chipActive]}
           >
@@ -233,16 +251,23 @@ export function ProjectForm({ visible, onClose }: { visible: boolean; onClose: (
         ))}
       </View>
       <Text style={[s.label, { marginBottom: 10 }]}>Project color</Text>
-      <View style={[s.chips, { marginBottom: 26 }]}>
-        {['#6b5cce', '#cf7846', '#378b7b', '#447ab4', '#b75976'].map((c) => (
+      <View style={[s.chips, { marginBottom: 16 }]}>
+        {[
+          ['#6b5cce', 'Purple'],
+          ['#cf7846', 'Orange'],
+          ['#378b7b', 'Teal'],
+          ['#447ab4', 'Blue'],
+          ['#b75976', 'Rose'],
+        ].map(([c, label]) => (
           <Pressable
             key={c}
             accessibilityRole="button"
-            accessibilityLabel={`Choose ${c}`}
+            accessibilityLabel={`Choose ${label}`}
+            accessibilityState={{ selected: color === c }}
             onPress={() => setColor(c)}
             style={{
-              width: 38,
-              height: 38,
+              width: 44,
+              height: 44,
               borderRadius: 12,
               backgroundColor: c,
               alignItems: 'center',
