@@ -1,7 +1,7 @@
+import { Text, useTextFont } from './Typography';
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   Pressable,
   TextInput,
   StyleSheet,
@@ -15,13 +15,14 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 export const C = {
-  bg: '#f6f8f7',
+  bg: '#f4f5ef',
   white: '#ffffff',
-  ink: '#18382f',
-  muted: '#64766d',
-  green: '#246d50',
-  mint: '#dff2e8',
-  line: '#e7ece8',
+  ink: '#1c332c',
+  muted: '#67736a',
+  green: '#203c31',
+  accent: '#dfff7a',
+  mint: '#e7ecd8',
+  line: '#e0e5d9',
   orange: '#c47a30',
   softOrange: '#fff2df',
   red: '#ba5650',
@@ -44,6 +45,7 @@ export function Button({
   disabled = false,
   loading = false,
   small = false,
+  tone = 'default',
 }: {
   title: string;
   onPress: () => void;
@@ -52,7 +54,9 @@ export function Button({
   disabled?: boolean;
   loading?: boolean;
   small?: boolean;
+  tone?: 'default' | 'accent' | 'glass';
 }) {
+  const foreground = tone === 'accent' || (tone === 'default' && secondary) ? C.ink : C.white;
   return (
     <Pressable
       accessibilityRole="button"
@@ -63,17 +67,23 @@ export function Button({
       style={({ pressed }) => [
         s.button,
         secondary && s.secondary,
+        tone === 'accent' && { backgroundColor: C.accent, borderWidth: 0 },
+        tone === 'glass' && {
+          backgroundColor: '#ffffff12',
+          borderWidth: 1,
+          borderColor: '#ffffff29',
+        },
         small && { paddingVertical: 10, minHeight: 44 },
         (disabled || loading) && { opacity: 0.5 },
         pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
       ]}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={secondary ? C.green : 'white'} />
+        <ActivityIndicator size="small" color={foreground} />
       ) : icon ? (
-        <Icon name={icon} size={18} color={secondary ? C.ink : 'white'} />
+        <Icon name={icon} size={18} color={foreground} />
       ) : null}
-      <Text style={[s.buttonText, secondary && { color: C.ink }]}>{title}</Text>
+      <Text style={[s.buttonText, { color: foreground }]}>{title}</Text>
     </Pressable>
   );
 }
@@ -139,6 +149,7 @@ export function Field({
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric';
 }) {
+  const fontFamily = useTextFont();
   const [focused, setFocused] = useState(false);
   const [revealed, setRevealed] = useState(false);
   return (
@@ -159,7 +170,11 @@ export function Field({
           autoCapitalize={
             keyboardType === 'email-address' || secureTextEntry ? 'none' : 'sentences'
           }
-          style={[s.input, multiline && { minHeight: 80, textAlignVertical: 'top' }]}
+          style={[
+            s.input,
+            fontFamily && { fontFamily },
+            multiline && { minHeight: 80, textAlignVertical: 'top' },
+          ]}
         />
         {secureTextEntry ? (
           <Pressable
@@ -331,14 +346,14 @@ export const s = StyleSheet.create({
     backgroundColor: C.white,
     borderWidth: 1,
     borderColor: C.line,
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 24,
+    padding: 18,
   },
   button: {
-    minHeight: 46,
+    minHeight: 48,
     backgroundColor: C.green,
-    borderRadius: 10,
-    paddingHorizontal: 18,
+    borderRadius: 16,
+    paddingHorizontal: 16,
     paddingVertical: 13,
     flexDirection: 'row',
     gap: 8,
@@ -346,17 +361,17 @@ export const s = StyleSheet.create({
     justifyContent: 'center',
   },
   secondary: { backgroundColor: C.white, borderWidth: 1, borderColor: C.line },
-  buttonText: { fontSize: 13, color: 'white', fontWeight: '600' },
-  tag: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 6, alignSelf: 'flex-start' },
+  buttonText: { fontSize: 14, color: 'white', fontWeight: '600' },
+  tag: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999, alignSelf: 'flex-start' },
   avatar: { alignItems: 'center', justifyContent: 'center' },
   label: { fontSize: 12, fontWeight: '600', color: C.ink },
   inputShell: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#d8e2db',
-    backgroundColor: '#fafcfb',
-    borderRadius: 10,
+    borderColor: C.line,
+    backgroundColor: '#f8f9f4',
+    borderRadius: 14,
     overflow: 'hidden',
   },
   input: {
@@ -374,9 +389,9 @@ export const s = StyleSheet.create({
     marginBottom: 18,
     flexWrap: 'wrap',
   },
-  title: { fontSize: 26, fontWeight: '700', color: C.ink, letterSpacing: -1 },
+  title: { fontSize: 28, fontWeight: '600', color: C.ink, letterSpacing: -1 },
   eyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.7, color: C.muted },
-  body: { fontSize: 13, lineHeight: 20, color: C.muted },
+  body: { fontSize: 14, lineHeight: 21, color: C.muted },
   h2: { fontSize: 17, fontWeight: '600', color: C.ink, letterSpacing: -0.3 },
   h3: { fontSize: 14, fontWeight: '600', color: C.ink },
   emptyIcon: {
@@ -404,19 +419,19 @@ export const s = StyleSheet.create({
   },
   iconButton: { padding: 10, borderWidth: 1, borderColor: C.line, borderRadius: 10 },
   divider: { height: 1, backgroundColor: C.line, marginVertical: 14 },
-  small: { fontSize: 11, color: C.muted, lineHeight: 17 },
+  small: { fontSize: 12, color: C.muted, lineHeight: 18 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     borderWidth: 1,
     borderColor: C.line,
-    borderRadius: 8,
+    borderRadius: 14,
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 12,
     paddingVertical: 10,
     backgroundColor: 'white',
   },
-  chipActive: { backgroundColor: C.mint, borderColor: '#b3d5c3' },
+  chipActive: { backgroundColor: C.mint, borderColor: '#b8c39e' },
   chipText: { fontSize: 12, color: C.ink },
   progress: { height: 5, backgroundColor: '#edf1ed', borderRadius: 6, overflow: 'hidden' },
   space: { marginBottom: 18 },

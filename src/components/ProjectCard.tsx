@@ -1,6 +1,7 @@
+import { Text } from './Typography';
 import React from 'react';
 import { useClock } from '../lib/useClock';
-import { View, Text, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { Project } from '../types';
 import { useStore } from '../store';
 import { projectProgress, dateLabel } from '../lib/domain';
@@ -24,14 +25,14 @@ export function ProjectCard({ project: p, onPress }: { project: Project; onPress
         opacity: pressed ? 0.8 : 1,
       })}
     >
-      <Card style={{ gap: 12 }}>
+      <Card style={{ gap: 12, backgroundColor: C.mint, borderColor: C.mint }}>
         <View style={[s.row, { justifyContent: 'space-between', marginBottom: 0 }]}>
           <View
             style={{
               width: 36,
               height: 36,
               borderRadius: 13,
-              backgroundColor: p.color + '15',
+              backgroundColor: '#ffffffb0',
               alignItems: 'center',
               justifyContent: 'center',
             }}
@@ -69,7 +70,7 @@ export function ProjectCard({ project: p, onPress }: { project: Project; onPress
             {contributors.slice(0, 3).map((person) => (
               <View
                 key={person.id}
-                style={{ marginLeft: -6, borderWidth: 2, borderColor: 'white', borderRadius: 20 }}
+                style={{ marginLeft: -6, borderWidth: 2, borderColor: C.mint, borderRadius: 20 }}
               >
                 <Avatar name={person.name} color={person.avatar} size={26} />
               </View>

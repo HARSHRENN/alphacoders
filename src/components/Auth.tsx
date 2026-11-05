@@ -1,7 +1,7 @@
+import { Text } from './Typography';
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   Pressable,
   ScrollView,
   useWindowDimensions,
@@ -89,7 +89,7 @@ export function Auth() {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
           <View style={{ flexGrow: 1, flexDirection: desktop ? 'row' : 'column' }}>
             <LinearGradient
-              colors={['#163e30', '#245b45']}
+              colors={[C.green, '#2e4a36']}
               style={{
                 flex: desktop ? 1 : undefined,
                 padding: desktop ? 48 : 20,
@@ -102,7 +102,7 @@ export function Auth() {
                   style={{
                     width: 34,
                     height: 34,
-                    backgroundColor: '#daf7c0',
+                    backgroundColor: C.accent,
                     borderRadius: 10,
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -139,7 +139,7 @@ export function Auth() {
                       'Shared updates for your whole team',
                     ].map((label) => (
                       <View key={label} style={s.row}>
-                        <Icon name="checkmark-circle-outline" size={20} color="#c2e59a" />
+                        <Icon name="checkmark-circle-outline" size={20} color={C.accent} />
                         <Text style={{ color: '#e1eee6', fontSize: 13, flex: 1 }}>{label}</Text>
                       </View>
                     ))}

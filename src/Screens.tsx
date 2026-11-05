@@ -1,5 +1,6 @@
+import { Text } from './components/Typography';
 import React, { useState } from 'react';
-import { View, Text, Pressable, TextInput, useWindowDimensions, Share, Switch } from 'react-native';
+import { View, Pressable, TextInput, useWindowDimensions, Share, Switch } from 'react-native';
 import { useStore } from './store';
 import { Project, WorkUpdate } from './types';
 import {
@@ -54,22 +55,21 @@ export function Overview({ onUpdate, onProject, onNavigate, onNewProject }: Navi
   const firstProject = !data!.projects.length;
   return (
     <>
-      <Heading title={`Hi, ${me!.name.split(' ')[0]}`} description={data!.workspace.name} />
+      <Heading
+        eyebrow={data!.workspace.name.toUpperCase()}
+        title={`Hi, ${me!.name.split(' ')[0]}`}
+        description="Let’s make progress today."
+      />
       <WorkClock />
       {projects.length ? (
-        <Card
-          style={{ backgroundColor: '#edf5f0', borderColor: '#c9dfd1', gap: 12, marginBottom: 18 }}
-        >
-          <View style={s.row}>
-            <View style={[s.emptyIcon, { backgroundColor: 'white' }]}>
-              <Icon name="create-outline" color={C.green} size={23} />
-            </View>
+        <Card style={{ gap: 8, marginBottom: 18 }}>
+          <View style={[s.row, { gap: 10 }]}>
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={s.h2}>Share your progress</Text>
-              <Text style={s.body}>Tell the team what you finished and what’s next.</Text>
+              <Text style={s.h2}>Work update</Text>
+              <Text style={s.small}>Done, next steps & finish time.</Text>
             </View>
+            <Button title="Post update" small icon="add" onPress={() => onUpdate()} />
           </View>
-          <Button title="Post work update" icon="add" onPress={() => onUpdate()} />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Manage work reminders"
@@ -158,7 +158,7 @@ export function Overview({ onUpdate, onProject, onNavigate, onNewProject }: Navi
             {!data!.updates.length ? (
               <Empty
                 title="No updates yet"
-                body="Your team’s work updates will appear here. Use “Post work update” to add the first one."
+                body="Your team’s work updates will appear here. Post an update to add the first one."
               />
             ) : null}
           </View>

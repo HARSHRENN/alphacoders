@@ -11,6 +11,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       ? { googleServicesFile: process.env.GOOGLE_SERVICES_JSON }
       : {}),
   },
-  plugins: ['expo-router', 'expo-notifications', 'expo-secure-store'],
+  plugins: ['expo-font', 'expo-router', 'expo-notifications', 'expo-secure-store'],
   extra: { eas: { projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID || undefined } },
 });

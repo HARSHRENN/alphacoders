@@ -1,5 +1,6 @@
+import { Text } from './Typography';
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { useStore } from '../store';
 import { Profile } from '../types';
 import {
@@ -10,7 +11,7 @@ import {
   dateLabel,
   timeLabel,
 } from '../lib/domain';
-import { Card, Button, Icon, Tag, Sheet, ErrorText, Empty, C, s } from './ui';
+import { Card, Button, Tag, Sheet, ErrorText, Empty, C, s } from './ui';
 import { UpdateCard } from './UpdateCard';
 
 function useWorkNow(active: boolean) {
@@ -52,83 +53,115 @@ export function WorkClock() {
   }
   return (
     <>
-      <Card style={{ marginBottom: 16, gap: 12, borderColor: active ? '#b5d5c1' : C.line }}>
-        <View style={[s.row, { justifyContent: 'space-between' }]}>
-          <View style={[s.row, { gap: 8 }]}>
-            <Icon name="timer-outline" color={C.green} size={21} />
-            <Text style={s.h3}>Your work time</Text>
-          </View>
-          <Tag
-            text={active ? 'Working now' : 'Clock stopped'}
-            bg={active ? C.mint : '#f0f3f1'}
-            color={active ? C.green : C.muted}
+      <Card
+        style={{
+          marginBottom: 16,
+          gap: 16,
+          padding: 20,
+          backgroundColor: C.green,
+          borderColor: C.green,
+          borderRadius: 28,
+          overflow: 'hidden',
+        }}
+      >
+        <View
+          pointerEvents="none"
+          accessible={false}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{
+            position: 'absolute',
+            right: -60,
+            top: -86,
+            width: 220,
+            height: 220,
+            borderRadius: 110,
+            borderWidth: 1,
+            borderColor: '#ffffff18',
+          }}
+        >
+          <View
+            style={{
+              position: 'absolute',
+              inset: 24,
+              borderRadius: 100,
+              borderWidth: 1,
+              borderColor: '#ffffff18',
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              inset: 48,
+              borderRadius: 100,
+              borderWidth: 1,
+              borderColor: '#ffffff18',
+            }}
           />
         </View>
-        <View style={[s.row, { justifyContent: 'space-between', flexWrap: 'wrap' }]}>
-          <View style={{ gap: 4 }}>
-            <Text
-              style={{
-                color: C.ink,
-                fontSize: 30,
-                fontWeight: '700',
-                fontVariant: ['tabular-nums'],
-              }}
-            >
-              {active
-                ? formatWorkDuration(workDurationMs(active, 0, now), true)
-                : formatWorkDuration(total)}
-            </Text>
-            <Text style={s.small}>
-              {active
-                ? `Current session · Started ${timeLabel(active.started_at)}`
-                : 'Total time today'}
-            </Text>
-          </View>
-          {active ? (
-            <View style={{ gap: 4 }}>
-              <Text style={s.h3}>{formatWorkDuration(total)}</Text>
-              <Text style={s.small}>Total today</Text>
-            </View>
-          ) : null}
+        <View style={[s.row, { justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }]}>
+          <Text style={{ color: '#d6e0cc', fontSize: 13, fontWeight: '500' }}>Your work time</Text>
+          <Tag
+            text={active ? 'Working now' : 'Ready to start'}
+            bg="#ffffff17"
+            color={active ? C.accent : '#e5ebdf'}
+          />
         </View>
-        <Button
-          title={active ? 'Stop work' : 'Start work'}
-          icon={active ? 'stop-circle-outline' : 'play-circle-outline'}
-          secondary={!!active}
-          loading={busy}
-          onPress={toggle}
-        />
-        <Text style={s.small}>
+        <View style={{ gap: 4 }}>
+          <Text
+            style={{
+              color: C.white,
+              fontSize: 40,
+              lineHeight: 50,
+              fontWeight: '500',
+              letterSpacing: -1.5,
+              fontVariant: ['tabular-nums'],
+            }}
+          >
+            {active
+              ? formatWorkDuration(workDurationMs(active, 0, now), true)
+              : formatWorkDuration(total)}
+          </Text>
+          <Text style={{ color: '#d6e0cc', fontSize: 12, lineHeight: 18 }}>
+            {active
+              ? `Started ${timeLabel(active.started_at)} · ${formatWorkDuration(total)} today`
+              : 'Total time logged today'}
+          </Text>
+        </View>
+        <View style={[s.row, { gap: 8 }]}>
+          <View style={{ flex: 1 }}>
+            <Button
+              title={active ? 'Stop work' : 'Start work'}
+              icon={active ? 'stop-circle-outline' : 'play-circle-outline'}
+              tone="accent"
+              loading={busy}
+              onPress={toggle}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              title="My history"
+              icon="time-outline"
+              tone="glass"
+              onPress={() => setHistory(true)}
+            />
+          </View>
+        </View>
+        <Text style={{ color: '#d6e0cc', fontSize: 12, lineHeight: 18 }}>
           {active
-            ? 'Time keeps running when you close the app. Tap Stop work when you finish.'
-            : 'Start when you begin working. Stop when you take a break or finish.'}
+            ? 'Your timer keeps running when you close the app.'
+            : 'Start when you begin. Stop for a break or when you finish.'}
         </Text>
-        <ErrorText text={error} />
-        {message ? (
-          <Text accessibilityLiveRegion="polite" style={[s.body, { color: C.green }]}>
-            {message}
-          </Text>
-        ) : null}
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setHistory(true)}
-          style={[
-            s.row,
-            {
-              minHeight: 44,
-              justifyContent: 'space-between',
-              borderTopWidth: 1,
-              borderColor: C.line,
-              paddingTop: 8,
-            },
-          ]}
-        >
-          <Text style={{ fontSize: 13, color: C.green, fontWeight: '600' }}>
-            View my work & time
-          </Text>
-          <Icon name="chevron-forward" size={16} color={C.green} />
-        </Pressable>
       </Card>
+      <ErrorText text={error} />
+      {message ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[s.body, { color: C.green, marginBottom: 16 }]}
+        >
+          {message}
+        </Text>
+      ) : null}
       {history ? <WorkTimeHistory person={me!} onClose={() => setHistory(false)} /> : null}
     </>
   );

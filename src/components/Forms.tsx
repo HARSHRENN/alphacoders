@@ -1,5 +1,6 @@
+import { Text } from './Typography';
 import React, { useState } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { useStore } from '../store';
 import { Button, Field, Sheet, ErrorText, Empty, s, Icon, C } from './ui';
 import { WorkUpdate } from '../types';

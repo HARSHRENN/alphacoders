@@ -1,5 +1,6 @@
+import { Text } from './Typography';
 import React, { useEffect } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { firebaseAuth } from '../lib/firebase';

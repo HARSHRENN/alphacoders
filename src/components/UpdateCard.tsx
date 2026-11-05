@@ -1,5 +1,6 @@
+import { Text } from './Typography';
 import React, { useState } from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
 import { WorkUpdate } from '../types';
 import { useStore } from '../store';
 import { relative, timeLabel, dateLabel } from '../lib/domain';

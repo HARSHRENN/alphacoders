@@ -1,7 +1,7 @@
+import { Text } from './src/components/Typography';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
-  Text,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -109,19 +109,19 @@ function Workspace() {
           onPress={() => setTab(item.name)}
           style={({ pressed }) => [
             bottom ? styles.bottomItem : styles.navItem,
-            tab === item.name && (bottom ? { backgroundColor: '#edf4eb' } : styles.navActive),
+            tab === item.name && styles.navActive,
             pressed && { opacity: 0.6 },
           ]}
         >
           <Icon
             name={item.icon}
             size={bottom ? 21 : 19}
-            color={tab === item.name ? C.green : '#8a958c'}
+            color={tab === item.name ? C.white : C.muted}
           />
           <Text
             style={{
               fontSize: bottom ? 12 : 13,
-              color: tab === item.name ? C.green : '#78867d',
+              color: tab === item.name ? C.white : C.muted,
               fontWeight: tab === item.name ? '600' : '400',
             }}
           >
@@ -149,7 +149,7 @@ function Workspace() {
           <View style={styles.sidebar}>
             <View style={[s.row, { paddingHorizontal: 14, marginBottom: 24 }]}>
               <View style={styles.logoIcon}>
-                <Icon name="pulse" size={24} color="#e5f5d6" />
+                <Icon name="pulse" size={24} color={C.accent} />
               </View>
               <Text style={styles.logo}>alphacoders</Text>
             </View>
@@ -212,18 +212,22 @@ function Workspace() {
             <View style={[s.row, { gap: 9 }]}>
               {!desktop ? (
                 <View style={styles.logoIcon}>
-                  <Icon name="pulse" color="#e5f5d6" size={21} />
+                  <Icon name="pulse" color={C.accent} size={21} />
                 </View>
               ) : (
                 <Icon name="home-outline" size={14} color={C.muted} />
               )}
-              <Text style={{ fontSize: 12, color: C.muted }}>
-                {desktop ? 'Workspace' : 'alphacoders'}
-              </Text>
-              <Text style={{ fontSize: 12, color: '#b7c1b8' }}>/</Text>
-              <Text style={{ fontSize: 12, color: C.ink }}>
-                {tab === 'Overview' ? 'Home' : tab}
-              </Text>
+              {desktop ? (
+                <>
+                  <Text style={{ fontSize: 12, color: C.muted }}>Workspace</Text>
+                  <Text style={{ fontSize: 12, color: C.muted }}>/</Text>
+                  <Text style={{ fontSize: 12, color: C.ink }}>
+                    {tab === 'Overview' ? 'Home' : tab}
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.logo}>alphacoders</Text>
+              )}
             </View>
             <View style={[s.row, { gap: 14 }]}>
               {desktop ? (
@@ -239,7 +243,15 @@ function Workspace() {
                 accessibilityRole="button"
                 accessibilityLabel="Notification settings"
                 onPress={() => setTab('Settings')}
-                style={{ padding: 7 }}
+                style={{
+                  minHeight: 44,
+                  minWidth: 44,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 1,
+                  borderColor: C.line,
+                  borderRadius: 22,
+                }}
               >
                 <Icon name="notifications-outline" size={19} />
                 {me.notifications_enabled ? (
@@ -364,7 +376,7 @@ const styles = StyleSheet.create({
     width: 31,
     height: 31,
     borderRadius: 9,
-    backgroundColor: '#285b40',
+    backgroundColor: C.green,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -387,21 +399,22 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 9,
   },
-  navActive: { backgroundColor: '#eaf0e4' },
+  navActive: { backgroundColor: C.green },
   topbar: {
-    minHeight: 56,
-    borderBottomWidth: 1,
-    borderColor: C.line,
-    backgroundColor: '#fcfdfb',
+    minHeight: 68,
+    backgroundColor: C.bg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   bottomNav: {
     flexDirection: 'row',
-    borderTopWidth: 1,
+    borderWidth: 1,
     borderColor: C.line,
     padding: 6,
+    marginHorizontal: 12,
+    marginBottom: 8,
+    borderRadius: 28,
     backgroundColor: C.white,
   },
   bottomItem: {
@@ -410,6 +423,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
     paddingVertical: 10,
-    borderRadius: 9,
+    borderRadius: 22,
   },
 });
