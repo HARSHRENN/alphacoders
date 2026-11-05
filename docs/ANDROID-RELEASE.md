@@ -2,6 +2,10 @@
 
 This release includes the new UI, member-only work clocks, founder team totals, project work updates, and the live Firebase/Supabase configuration. Android version code 2 upgrades the earlier version-code-1 APK using the existing signing identity.
 
+The 1.1.0 APK was built locally with explicit owner approval after the cloud device-login code expired. `npm run apk:local -- --prebuild` regenerated the native project with Expo and signed with the original key. Signature checks passed, and installation over the earlier APK and a cold launch succeeded on the API 36.1 emulator with no app-scoped fatal or React Native errors. The version, signing certificate, SHA-256, size, and source commit are recorded in `releases/android-release.json`.
+
+For future cloud builds, use the following process.
+
 ## Build and verify
 
 1. Authenticate the workspace with `npx eas-cli@latest login --device`.

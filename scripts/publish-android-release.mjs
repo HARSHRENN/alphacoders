@@ -31,8 +31,15 @@ function identity(file) {
   if (!match || badging.includes('application-debuggable'))
     throw new Error('APK identity is invalid or debuggable.');
   const certificate = run(join(tools, 'apksigner'), ['verify', '--print-certs', file]);
-  const signer = certificate.match(/Signer #1 certificate SHA-256 digest: (\w+)/)?.[1];
-  if (!signer) throw new Error('APK signature could not be verified.');
+  const signers = [
+    ...new Set(
+      [...certificate.matchAll(/certificate SHA-256 digest: ([a-f0-9]+)/gi)].map((match) =>
+        match[1].toLowerCase(),
+      ),
+    ),
+  ];
+  if (signers.length !== 1) throw new Error('APK must have exactly one verified signing identity.');
+  const signer = signers[0];
   return {
     packageName: match[1],
     versionCode: Number(match[2]),
