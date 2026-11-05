@@ -272,12 +272,14 @@ export function Sheet({
   subtitle,
   onClose,
   children,
+  contentKey,
 }: {
   visible: boolean;
   title: string;
   subtitle?: string;
   onClose: () => void;
   children: React.ReactNode;
+  contentKey?: string | number;
 }) {
   const { width } = useWindowDimensions();
   return (
@@ -301,7 +303,11 @@ export function Sheet({
               <Icon name="close" />
             </Pressable>
           </View>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16 }}>
+          <ScrollView
+            key={contentKey}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ padding: 16 }}
+          >
             {children}
           </ScrollView>
         </KeyboardAvoidingView>

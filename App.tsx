@@ -19,12 +19,12 @@ import { UpdateForm, ProjectForm } from './src/components/Forms';
 import { Icon, Avatar, IconName, ErrorText, C, s } from './src/components/ui';
 import { Project, WorkUpdate } from './src/types';
 import { router, useLocalSearchParams } from 'expo-router';
-const tabs: { name: string; icon: IconName }[] = [
-  { name: 'Overview', icon: 'grid-outline' },
-  { name: 'Projects', icon: 'layers-outline' },
-  { name: 'Updates', icon: 'chatbubbles-outline' },
-  { name: 'Team', icon: 'people-outline' },
-  { name: 'Settings', icon: 'settings-outline' },
+const tabs: { name: string; label: string; icon: IconName }[] = [
+  { name: 'Overview', label: 'Home', icon: 'home-outline' },
+  { name: 'Projects', label: 'Projects', icon: 'layers-outline' },
+  { name: 'Updates', label: 'Updates', icon: 'chatbubbles-outline' },
+  { name: 'Team', label: 'Team', icon: 'people-outline' },
+  { name: 'Settings', label: 'Settings', icon: 'settings-outline' },
 ];
 function Workspace() {
   const { data, me, loading, error, refresh, clearError } = useStore();
@@ -98,48 +98,50 @@ function Workspace() {
     );
   if (!data || !me) return <Auth />;
   const nav = (bottom = false) =>
-    tabs.map((item) => (
-      <Pressable
-        key={item.name}
-        accessibilityRole="button"
-        accessibilityLabel={item.name}
-        accessibilityState={{ selected: tab === item.name }}
-        onPress={() => setTab(item.name)}
-        style={({ pressed }) => [
-          bottom ? styles.bottomItem : styles.navItem,
-          tab === item.name && (bottom ? { backgroundColor: '#edf4eb' } : styles.navActive),
-          pressed && { opacity: 0.6 },
-        ]}
-      >
-        <Icon
-          name={item.icon}
-          size={bottom ? 21 : 19}
-          color={tab === item.name ? C.green : '#8a958c'}
-        />
-        <Text
-          style={{
-            fontSize: bottom ? 10 : 13,
-            color: tab === item.name ? C.green : '#78867d',
-            fontWeight: tab === item.name ? '600' : '400',
-          }}
+    tabs
+      .filter((item) => !bottom || item.name !== 'Settings')
+      .map((item) => (
+        <Pressable
+          key={item.name}
+          accessibilityRole="button"
+          accessibilityLabel={item.label}
+          accessibilityState={{ selected: tab === item.name }}
+          onPress={() => setTab(item.name)}
+          style={({ pressed }) => [
+            bottom ? styles.bottomItem : styles.navItem,
+            tab === item.name && (bottom ? { backgroundColor: '#edf4eb' } : styles.navActive),
+            pressed && { opacity: 0.6 },
+          ]}
         >
-          {item.name}
-        </Text>
-        {!bottom && item.name === 'Updates' ? (
-          <View
+          <Icon
+            name={item.icon}
+            size={bottom ? 21 : 19}
+            color={tab === item.name ? C.green : '#8a958c'}
+          />
+          <Text
             style={{
-              marginLeft: 'auto',
-              backgroundColor: '#e4eddf',
-              borderRadius: 5,
-              paddingHorizontal: 6,
-              paddingVertical: 2,
+              fontSize: bottom ? 12 : 13,
+              color: tab === item.name ? C.green : '#78867d',
+              fontWeight: tab === item.name ? '600' : '400',
             }}
           >
-            <Text style={{ fontSize: 10, color: '#67805c' }}>{data.updates.length}</Text>
-          </View>
-        ) : null}
-      </Pressable>
-    ));
+            {item.label}
+          </Text>
+          {!bottom && item.name === 'Updates' ? (
+            <View
+              style={{
+                marginLeft: 'auto',
+                backgroundColor: '#e4eddf',
+                borderRadius: 5,
+                paddingHorizontal: 6,
+                paddingVertical: 2,
+              }}
+            >
+              <Text style={{ fontSize: 10, color: '#67805c' }}>{data.updates.length}</Text>
+            </View>
+          ) : null}
+        </Pressable>
+      ));
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
       <View style={{ flex: 1, flexDirection: 'row' }}>
@@ -219,7 +221,9 @@ function Workspace() {
                 {desktop ? 'Workspace' : 'alphacoders'}
               </Text>
               <Text style={{ fontSize: 12, color: '#b7c1b8' }}>/</Text>
-              <Text style={{ fontSize: 12, color: C.ink }}>{tab}</Text>
+              <Text style={{ fontSize: 12, color: C.ink }}>
+                {tab === 'Overview' ? 'Home' : tab}
+              </Text>
             </View>
             <View style={[s.row, { gap: 14 }]}>
               {desktop ? (
@@ -252,7 +256,20 @@ function Workspace() {
                   />
                 ) : null}
               </Pressable>
-              <Avatar name={me.name} color={me.avatar} size={30} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Profile and settings"
+                onPress={() => setTab('Settings')}
+                style={({ pressed }) => ({
+                  minHeight: 44,
+                  minWidth: 44,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Avatar name={me.name} color={me.avatar} size={32} />
+              </Pressable>
             </View>
           </View>
           <ScrollView
@@ -304,7 +321,7 @@ function Workspace() {
               ) : tab === 'Projects' ? (
                 <Projects onProject={setProject} onNewProject={() => setNewProject(true)} />
               ) : tab === 'Updates' ? (
-                <Updates onUpdate={() => post()} onRevise={revise} />
+                <Updates onUpdate={() => post()} onRevise={revise} onNavigate={setTab} />
               ) : tab === 'Team' ? (
                 <Team />
               ) : (

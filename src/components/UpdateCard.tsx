@@ -40,7 +40,7 @@ export function UpdateCard({
         <View style={[s.row, { alignItems: 'flex-start', gap: 9 }]}>
           <Icon name="checkmark-circle" color="#6b9d73" size={16} />
           <View style={{ flex: 1, gap: 3 }}>
-            <Text style={s.label}>Completed</Text>
+            <Text style={s.label}>Finished</Text>
             <Text
               numberOfLines={compact && !expanded ? 3 : undefined}
               style={[s.body, { color: '#455d50' }]}
@@ -53,7 +53,7 @@ export function UpdateCard({
           <View style={[s.row, { alignItems: 'flex-start', gap: 9 }]}>
             <Icon name="ellipse-outline" color={C.muted} size={16} />
             <View style={{ flex: 1, gap: 3 }}>
-              <Text style={s.label}>Remaining</Text>
+              <Text style={s.label}>Left to do</Text>
               <Text style={s.body}>{u.remaining || 'All work completed.'}</Text>
             </View>
           </View>
@@ -70,7 +70,7 @@ export function UpdateCard({
           >
             <Icon name="flag-outline" color={C.orange} size={15} />
             <Text style={{ fontSize: 12, lineHeight: 18, color: '#9b743e', flex: 1 }}>
-              Blocker: {u.blocker}
+              Needs help: {u.blocker}
             </Text>
           </View>
         ) : null}
@@ -81,7 +81,7 @@ export function UpdateCard({
             Finish by: {dateLabel(u.eta)}, {timeLabel(u.eta)}
           </Text>
           {u.user_id === me?.id && !revised && onRevise ? (
-            <Link text="Revise update" onPress={() => onRevise(u)} />
+            <Link text="Edit update" onPress={() => onRevise(u)} />
           ) : null}
         </View>
       ) : null}
