@@ -20,14 +20,26 @@ if (checksum !== expected) throw new Error('Android release checksum does not ma
 await mkdir('dist/web/downloads', { recursive: true });
 await copyFile('releases/alphacoders.apk', 'dist/web/downloads/alphacoders.apk');
 await copyFile('releases/alphacoders.apk.sha256', 'dist/web/downloads/alphacoders.apk.sha256');
-await writeFile(
-  'dist/web/downloads/build.json',
-  JSON.stringify({
+let metadata;
+try {
+  metadata = JSON.parse(await readFile('releases/android-release.json', 'utf8'));
+} catch (error) {
+  if (error.code !== 'ENOENT') throw error;
+  // The original APK predates the release metadata file.
+  metadata = {
     version: '1.0.0',
+    versionCode: 1,
     platform: 'android',
     filename: 'alphacoders.apk',
     sha256: checksum,
     size: apk.length,
-  }),
-);
+  };
+}
+if (
+  metadata.sha256 !== checksum ||
+  metadata.size !== apk.length ||
+  metadata.filename !== 'alphacoders.apk'
+)
+  throw new Error('Android release metadata does not match the verified APK');
+await writeFile('dist/web/downloads/build.json', JSON.stringify(metadata));
 console.log('Published the verified standalone Android APK in downloads.');

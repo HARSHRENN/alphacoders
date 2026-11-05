@@ -27,6 +27,10 @@
     },
     "production": {
       "autoIncrement": true
+    },
+    "release": {
+      "extends": "preview",
+      "environment": "production"
     }
   }
 }

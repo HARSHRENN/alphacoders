@@ -66,7 +66,7 @@ Remote push requires an installed Android build, a physical phone, and Firebase 
 ```sh
 # Sign in, then build a signed installable APK in the cloud
 npx eas-cli@latest login --device
-npx eas-cli@latest build --platform android --profile preview
+npx eas-cli@latest build --platform android --profile release
 ```
 
 Set the public Firebase/Supabase values and `GOOGLE_SERVICES_JSON` in the build environment. A build missing backend configuration opens the server-setup-pending screen. `npm run build:android` exports the JS/Hermes bundle; **it does not create an APK**. The locally signed APK at `artifacts/alphacoders.apk` includes the live public authentication settings and Android FCM resources. No Play Store release has been generated.
@@ -125,3 +125,7 @@ Apply `supabase/migrations/202611050001_work_sessions.sql` to existing projects 
 Founders supervise work: Home shows member check-ins, working members, team hours today, completed projects, and overdue projects. Team gives access to each member’s work and time. Founders have no personal work clock or posting prompt, and use ordinary **Sign out**. Only members use Start/Stop work and receive personal check-in reminders. Founder notifications still include team updates and project deadlines.
 
 Apply `supabase/migrations/202611050002_member_work_clocks.sql` after the work-session migration. It enforces member-only starts on the server, ends legacy founder clocks without removing history, and stops a member’s active clock when promoted to founder. Team time totals and the time section of daily reports count current members only.
+
+## Android 1.1.0 release preparation
+
+The signed cloud release uses `eas.json` profile `release`, app version 1.1.0, and Android version code 2. It keeps the original package/signing identity for upgrades and excludes unused overlay/storage permissions. See [the Android release steps and phone acceptance checks](docs/ANDROID-RELEASE.md). The current download is not replaced until the new binary passes `scripts/publish-android-release.mjs`; source version changes alone never relabel the earlier APK as a new release.

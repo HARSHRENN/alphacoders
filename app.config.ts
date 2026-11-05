@@ -2,7 +2,7 @@ import type { ExpoConfig, ConfigContext } from 'expo/config';
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'alphacoders',
-  slug: 'pulse-team',
+  slug: 'alphacoders',
   scheme: 'pulse-team',
   android: {
     ...config.android,
@@ -12,5 +12,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       : {}),
   },
   plugins: ['expo-font', 'expo-router', 'expo-notifications', 'expo-secure-store'],
-  extra: { eas: { projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID || undefined } },
+  extra: {
+    ...config.extra,
+    eas: {
+      ...config.extra?.eas,
+      projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID || config.extra?.eas?.projectId,
+    },
+  },
 });
