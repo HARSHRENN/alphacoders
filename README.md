@@ -2,11 +2,11 @@
 
 An Android-first React Native + Expo app for recurring work check-ins, multiple projects, and founder visibility. Includes a responsive web preview of the same React Native components.
 
-**Status:** Firebase email/password signup and the Supabase Firebase integration are enabled. All three database migrations, the account-access function, notification worker, and minute-by-minute cron schedule are deployed. The signed APK includes public Firebase/Supabase configuration and native Android FCM resources, with no demo data. The replacement server-only Firebase credential is saved, and the scheduled worker returns HTTP 200 with an empty queue. Real signup, email verification, founder workspace creation, and cloud reload have passed. The replacement Firebase service account has the approved three-permission backend role. Project/update form validation and empty screens are verified with no sample records created. Cross-phone updates and Android notification delivery still need device testing.
+**Status:** Firebase email/password signup and the Supabase Firebase integration are enabled. All four database migrations, the account-access function, notification worker, and minute-by-minute cron schedule are deployed. The signed APK includes public Firebase/Supabase configuration and native Android FCM resources, with no demo data. The replacement server-only Firebase credential is saved, and the scheduled worker returns HTTP 200 with an empty queue. Real signup, email verification, founder workspace creation, and cloud reload have passed. The replacement Firebase service account has the approved three-permission backend role. Project/update form validation and empty screens are verified with no sample records created. Cross-phone updates and Android notification delivery still need device testing.
 
 ## Use the hosted app
 
-Web app: https://alphacoders-six.vercel.app. Android download: https://alphacoders-six.vercel.app/downloads/alphacoders.apk. Sign in with your verified account; teammates sign up and join using the workspace invite code. The hosted app and standalone APK use Firebase/Supabase directly and do not require Metro or the development computer. Android notification delivery still needs a physical-device check.
+Web app: https://alphacoders-six.vercel.app. Android download: https://alphacoders-six.vercel.app/downloads/alphacoders.apk. Sign in with your verified account; teammates sign up and join using the workspace invite code. The hosted app and standalone APK use Firebase/Supabase directly and do not require Metro or the development computer. The downloadable APK is the earlier release; build a new APK through EAS to include the latest UI and work-time tracking. Android notification delivery still needs a physical-device check.
 
 ## Try it locally
 
@@ -28,8 +28,10 @@ For Android UI development, use `npm run android` with a compatible emulator or 
 - Multiple simultaneous projects with descriptions, priorities, colors, deadlines, search, archive/restore, and progress.
 - One- or two-hour reporting periods: completed work, remaining work, blockers, percentage complete, and expected completion date/time.
 - Attributed update feed, filters by project/person/time/blocker, and append-only revision history.
-- Founder overview of today’s updates, team check-ins, active projects, and current blockers.
-- Shareable daily text report through the system share sheet.
+- Founder visibility into team projects, work updates, help requests, and logged work time.
+- Start work / Stop work controls with a running session timer, daily totals, and server-timestamped session history. Clocking out is separate from account sign-in; signing out stops any running session first.
+- Members can read their own time records; founders can review workspace members’ work and time for today, the last 7 days, or the last 30 days. Repeated starts/stops are safe across devices. App clients cannot forge, overwrite, or delete time records.
+- Shareable daily text report including work updates, time totals, and start/stop records through the system share sheet.
 - Configurable one-/two-hour reminder cadence, check-in notifications, five-minute check-in warnings, and five-minute project deadline warnings for opted-in workspace members.
 - Server push jobs for founders when another teammate publishes or revises an update.
 - Realtime cloud refresh with a 30-second polling fallback and pull-to-refresh.
@@ -44,7 +46,7 @@ See [cloud deployment status and instructions](docs/CLOUD-DEPLOYMENT.md). The An
 ## Connect live accounts and team data
 
 1. Enable Firebase Authentication's Email/Password provider. Register a Firebase web SDK client (the same JS SDK supports Android) and configure the four `EXPO_PUBLIC_FIREBASE_*` values from `.env.example`. This project uses `alphacoders-593b1`.
-2. Apply all three migrations in order from `supabase/migrations/`. The second preserves application UUIDs and maps Firebase string UIDs through a private identity table. It requires a verified email and pins the Firebase issuer/audience to this project's ID. For another Firebase project, update that ID in the second migration and the `firebase-access` server function before deploying.
+2. Apply all four migrations in order from `supabase/migrations/`. The second preserves application UUIDs and maps Firebase string UIDs through a private identity table. It requires a verified email and pins the Firebase issuer/audience to this project's ID. For another Firebase project, update that ID in the second migration and the `firebase-access` server function before deploying.
 3. Add Firebase as a Third-Party Auth provider in Supabase using your Firebase project ID. Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` to the public URL and **publishable/anon** key. Never put service-role or Firebase private keys in app configuration.
 4. Deploy `supabase/functions/firebase-access/index.ts` with `verify_jwt=false`. It independently verifies Google's Firebase JWT signature, issuer, audience, expiry and email status, checks the account is enabled, and assigns only the database `authenticated` claim. Store the Firebase service-account JSON in Supabase Edge Function Secrets as `FIREBASE_SERVICE_ACCOUNT`. For both backend functions, grant only `firebaseauth.users.get`, `firebaseauth.users.update`, and `cloudmessaging.messages.create` to the current service-account identity. A recreated account with the same email does not inherit grants bound to a deleted account. The token requests the Authentication and service-account email scopes used by the Firebase Admin SDK. Its credential stays server-only. Firebase's default verification and reset emails require no separate SMTP provider.
 5. Restart Expo. Create a real account, confirm your email, and tap **I verified my email**. Create a workspace; its creator becomes a founder.
@@ -62,10 +64,8 @@ Remote push requires an installed Android build, a physical phone, and Firebase 
 4. Build and install the app. In Settings, enable work update notifications, select the cadence, and grant Android notification permission. Each Android device registers its own FCM token. Founders should enable notifications too.
 
 ```sh
-# Locally signed standalone APK, including native Firebase resources
-npm run apk:local -- --prebuild
-
-# Optional cloud-built preview APK
+# Sign in, then build a signed installable APK in the cloud
+npx eas-cli@latest login --device
 npx eas-cli@latest build --platform android --profile preview
 ```
 
@@ -106,8 +106,16 @@ npm run build:android
 npx --yes deno test --no-config --no-lock --node-modules-dir=none --allow-env=FIREBASE_SERVICE_ACCOUNT supabase/functions/firebase-access/index.test.ts
 ```
 
-Automated tests execute the actual migration in embedded Postgres (PGlite): workspace isolation, role restrictions, authorship, revision integrity, founder notifications, check-in/deadline scheduling, deduplication, job leases, archival, and co-founder promotion. Domain tests cover date boundaries, progress aggregation, validation, and daily reports.
+Automated tests execute the actual migration in embedded Postgres (PGlite): workspace isolation, role restrictions, authorship, revision integrity, founder notifications, check-in/deadline scheduling, deduplication, job leases, archival, and co-founder promotion. Domain tests cover date boundaries, progress aggregation, validation, daily reports, overnight time windows, breaks, and running-session totals. Work-session tests check idempotent start/stop, immutable timestamps, sign-out stopping semantics, and member/founder isolation.
 
 Firebase migration tests additionally reject anonymous, unverified and wrong-project claims, enforce private UID mapping, prevent impersonation and cross-workspace reads, and preserve revision notifications and founder promotion. The server test executes the deployed handler with signed test identities and mocked Google APIs, checking admin scopes, self-only claim assignment, disabled accounts, auth-time revocation, and redacted provider failures. Browser verification covers Firebase-backed sign-in, signup and reset screens. The deployed access function rejects missing/forged tokens and wrong HTTP methods. The notification worker also rejects missing or invalid invocation tickets. Real signup and email verification have passed. Founder workspace creation and cloud reload have also passed. Two-phone shared updates and native Android push delivery still need device testing.
 
 Source: `src/app/` (Expo Router routes and root providers), `App.tsx` (shell), `src/Screens.tsx` (screens), `src/components/` (shared UI/forms), `src/store.tsx` (state and cloud operations), `src/lib/notifications.ts` (device notification setup), `supabase/` (backend and scheduler).
+
+## Work-time tracking
+
+After signing in, use **Start work** on Home to begin a timed session. Use **Stop work** for a break or when finished. Each restart creates another saved session; the daily total excludes gaps between sessions. Closing the app keeps the session running. Signing out stops it on the server first; if that cannot be confirmed, sign-out stays blocked so the clock cannot silently continue.
+
+In **Team → View work & time**, founders can see each person’s start/stop times, total hours, current working status, and work updates. Members can use **View my work & time** for their own records. The UI supports today, 7-day, and 30-day windows; records are retained in the database. Times and day boundaries use the viewer’s local timezone, and overnight sessions are clipped to the selected dates. Work-update history in this view is subject to the feed’s existing 1,000-update load limit.
+
+Apply `supabase/migrations/202611050001_work_sessions.sql` to existing projects before deploying this client. It is transactional and safe to retry. The server sets timestamps, permits only one open session per person, and never takes a user identity or clock value from the client. Start/stop requires an internet connection; failed requests must be retried.

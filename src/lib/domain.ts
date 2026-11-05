@@ -1,4 +1,4 @@
-import type { Data, WorkUpdate } from '../types';
+import type { Data, WorkUpdate, WorkSession } from '../types';
 export function latestUpdates(updates: WorkUpdate[]): WorkUpdate[] {
   const seen = new Set<string>();
   return [...updates]
@@ -62,6 +62,16 @@ export function isToday(iso: string) {
 export function exportReport(data: Data) {
   return [
     `${data.workspace.name} · Daily report · ${new Date().toLocaleDateString()}`,
+    'WORK TIME TODAY',
+    ...data.profiles.map((person) => {
+      const now = Date.now();
+      const from = workDayStart(now);
+      const sessions = (data.work_sessions || []).filter(
+        (work) => work.user_id === person.id && workDurationMs(work, from, now) > 0,
+      );
+      return `${person.name}: ${formatWorkDuration(workTotalMs(sessions, from, now))}\n${sessions.map((work) => `Start: ${new Date(work.started_at).toLocaleString()} · Stop: ${work.ended_at ? new Date(work.ended_at).toLocaleString() : 'Still working'}`).join('\n')}`;
+    }),
+    'WORK UPDATES TODAY',
     ...data.updates
       .filter((u) => isToday(u.created_at))
       .map(
@@ -69,4 +79,29 @@ export function exportReport(data: Data) {
           `${data.profiles.find((p) => p.id === u.user_id)?.name} / ${data.projects.find((p) => p.id === u.project_id)?.name}\nCompleted: ${u.completed}\nRemaining: ${u.remaining || 'All done'}\nBlocker: ${u.blocker || 'None'}\nProgress: ${u.progress}% · ETA: ${new Date(u.eta).toLocaleString()}\nReported: ${new Date(u.created_at).toLocaleString()}`,
       ),
   ].join('\n\n');
+}
+
+/** Clip sessions to the chosen local-day window, including overnight work. */
+export function workDurationMs(session: WorkSession, from: number, to: number) {
+  const start = Math.max(Date.parse(session.started_at), from);
+  const end = Math.min(session.ended_at ? Date.parse(session.ended_at) : to, to);
+  return Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, end - start) : 0;
+}
+export function workTotalMs(sessions: WorkSession[], from: number, to: number) {
+  return sessions.reduce((total, session) => total + workDurationMs(session, from, to), 0);
+}
+export function workDayStart(now: number, days = 1) {
+  const date = new Date(now);
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() - (days - 1));
+  return date.getTime();
+}
+export function formatWorkDuration(ms: number, seconds = false) {
+  const total = Math.floor(Math.max(0, ms) / 1000);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  if (!seconds && total > 0 && total < 60) return `${total}s`;
+  return seconds
+    ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+    : `${hours}h ${minutes}m`;
 }

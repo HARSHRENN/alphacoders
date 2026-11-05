@@ -9,9 +9,9 @@ The native APK contains its JavaScript bundle. It does not require Metro, a comp
 - Production web app: https://alphacoders-six.vercel.app, deployed to `alphacoders` in the owner’s `harshren-bachhavs-projects` Vercel team. Public root, deep routes, and `/app-config.json` return HTTP 200 without Vercel authentication. The connected MCP account is a different account and was not used to deploy.
 - `vercel.json` prepares the dashboard export and `app-config.json` public connection metadata.
 - Firebase project `alphacoders-593b1` is on Spark. Email/Password signup is enabled, and its public JS SDK client is registered.
-- Supabase project `jrvqllgpuhzwyswwmpka` has all three migrations applied (2026-11-04), including the private Firebase identity mapping. All eight application tables have RLS enabled; anonymous workspace access remains blocked.
+- Supabase project `jrvqllgpuhzwyswwmpka` has all four migrations applied (the initial schema on 2026-11-04 and work sessions on 2026-11-05), including the private Firebase identity mapping. All nine application tables have RLS enabled; anonymous workspace access remains blocked.
 - Supabase's Firebase Third-Party Auth integration is enabled for `alphacoders-593b1` with the owner's explicit approval.
-- The local app and APK are configured with this project's public connection values through ignored `.env.local`. These values are not included in Git; other build environments must configure them separately.
+- The local app and APK are configured with this project's public connection values through ignored `.env.local`. The EAS preview profile also contains the public build values. Server and signing credentials remain private; other build environments must supply the public configuration.
 - The `firebase-access` Edge Function is deployed. It validates Google's Firebase ID tokens itself (`verify_jwt=false` for Supabase's legacy-secret gate). Missing/forged tokens return 401 and unsupported methods return 405. The owner saved the replacement server-only `FIREBASE_SERVICE_ACCOUNT` secret, confirmed in the project secret list on 2026-11-04. Its contents were not retrieved. Real signup, email verification, founder workspace creation, and a fresh cloud reload passed. The old IAM grants referred to a deleted identity; with explicit owner approval, the replacement service account now has the custom `alphacoders Backend` role containing only `firebaseauth.users.get`, `firebaseauth.users.update`, and `cloudmessaging.messages.create`. The server also requests the Firebase Authentication and service-account email OAuth scopes.
 - Firebase's built-in verification and password-reset emails replace the previous SMTP plan; Brevo and Gmail SMTP are not required.
 - The `notify` worker and minute-by-minute cron schedule are deployed. The worker authenticates private, expiring, one-use database invocation tickets. Missing/invalid tickets return 401 and unsupported methods return 405. Android FCM resources are included. The saved-secret configuration is present, and the scheduled worker returned HTTP 200 with accepted=0 and failed=0 at 2026-11-04 13:58 UTC. This checks the empty-queue path, not Google account-management or FCM delivery permissions. Real signup, verification, workspace creation, and reload passed; phone delivery tests remain outstanding.
@@ -20,7 +20,7 @@ The native APK contains its JavaScript bundle. It does not require Metro, a comp
 ## Supabase
 
 1. Create or connect a Supabase project and Firebase Authentication project with email/password auth.
-2. Apply all three SQL migration files in `supabase/migrations/` in order. Configure Firebase Third-Party Auth and the `firebase-access` function and secret as described in README.
+2. Apply all four SQL migration files in `supabase/migrations/` in order. Configure Firebase Third-Party Auth and the `firebase-access` function and secret as described in README.
 3. Deploy the `notify` Edge Function with its own invocation-ticket verification (`verify_jwt=false`), save the server-only Firebase service-account credential, and run `supabase/schedule.sql`. The scheduler runs in Supabase, independently of the website host.
 4. Set only the public project URL and publishable/anon key as `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in Vercel.
 5. Configure the public Firebase SDK values in the frontend build environment as well. Verify the real Firebase email-confirmation and reset flow.
@@ -52,3 +52,9 @@ Firebase's Android registration must match `com.pulseteam.app`. Set `GOOGLE_SERV
 New Android installs register native FCM tokens directly. The Supabase worker sends through FCM v1 using `FIREBASE_SERVICE_ACCOUNT`; EAS and Expo Push Service are not required for this path. Legacy Expo tokens remain supported. Server credentials stay in Supabase, never in the APK or Vercel frontend.
 
 Install on a physical Android phone, enable notifications in Settings, and verify: check-in warning, due reminder, project deadline warning, and a founder notification from another account. Delivery is best-effort and depends on permissions, network, and Android background behavior.
+
+## Work-time tracking release
+
+Apply `supabase/migrations/202611050001_work_sessions.sql` after the Firebase migration. The live project has the work-session table, self-only start/stop RPCs, founder/member read policies, and Realtime publication. Anonymous API calls to both clock functions return HTTP 401. The app loads recent ended sessions and all running sessions, with pagination so team time totals do not silently stop at the API row limit.
+
+The current web release includes the work clock and founder work/time views. The checked-in APK is the earlier release and needs a fresh EAS build to include these screens. Retain the existing Android signing identity when rebuilding so installed copies can be updated.

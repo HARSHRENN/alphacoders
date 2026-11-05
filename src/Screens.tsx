@@ -19,6 +19,7 @@ import {
 } from './components/ui';
 import { ProjectCard } from './components/ProjectCard';
 import { UpdateCard } from './components/UpdateCard';
+import { WorkClock, WorkTimeHistory } from './components/TimeTracking';
 import {
   dateLabel,
   timeLabel,
@@ -27,6 +28,9 @@ import {
   nextDue,
   exportReport,
   projectProgress,
+  workDayStart,
+  workTotalMs,
+  formatWorkDuration,
 } from './lib/domain';
 import { useClock } from './lib/useClock';
 import { enableNotifications } from './lib/notifications';
@@ -51,6 +55,7 @@ export function Overview({ onUpdate, onProject, onNavigate, onNewProject }: Navi
   return (
     <>
       <Heading title={`Hi, ${me!.name.split(' ')[0]}`} description={data!.workspace.name} />
+      <WorkClock />
       {projects.length ? (
         <Card
           style={{ backgroundColor: '#edf5f0', borderColor: '#c9dfd1', gap: 12, marginBottom: 18 }}
@@ -478,6 +483,9 @@ export function Team() {
   const { width } = useWindowDimensions();
   const [error, setError] = useState('');
   const [candidate, setCandidate] = useState<string | null>(null);
+  const [timePerson, setTimePerson] = useState<string | null>(null);
+  const now = useClock();
+  const selectedPerson = data!.profiles.find((person) => person.id === timePerson);
   const invite = async () => {
     try {
       await Share.share({
@@ -520,6 +528,9 @@ export function Team() {
           const projects = new Set(
             data!.updates.filter((u) => u.user_id === p.id).map((u) => u.project_id),
           );
+          const canViewTime = me!.role === 'founder' || p.id === me!.id;
+          const workSessions = data!.work_sessions.filter((work) => work.user_id === p.id);
+          const working = workSessions.some((work) => !work.ended_at);
           return (
             <Card
               key={p.id}
@@ -554,9 +565,11 @@ export function Team() {
                 </View>
                 <View>
                   <Text style={{ fontSize: 22, color: C.ink, fontWeight: '600' }}>
-                    {projects.size}
+                    {canViewTime
+                      ? formatWorkDuration(workTotalMs(workSessions, workDayStart(now), now))
+                      : projects.size}
                   </Text>
-                  <Text style={s.small}>Projects contributed</Text>
+                  <Text style={s.small}>{canViewTime ? 'Time today' : 'Projects contributed'}</Text>
                 </View>
               </View>
               <View style={[s.row, { marginTop: 12, gap: 7 }]}>
@@ -571,6 +584,18 @@ export function Team() {
                     : 'No check-in yet today'}
                 </Text>
               </View>
+              {canViewTime ? (
+                <View style={{ marginTop: 12, gap: 8 }}>
+                  {working ? <Tag text="Working now" /> : null}
+                  <Button
+                    title="View work & time"
+                    secondary
+                    small
+                    icon="timer-outline"
+                    onPress={() => setTimePerson(p.id)}
+                  />
+                </View>
+              ) : null}
               {me!.role === 'founder' && p.role === 'member' ? (
                 <View style={{ marginTop: 16 }}>
                   <Button
@@ -585,6 +610,9 @@ export function Team() {
           );
         })}
       </View>
+      {selectedPerson ? (
+        <WorkTimeHistory person={selectedPerson} onClose={() => setTimePerson(null)} />
+      ) : null}
       <Sheet
         visible={!!candidate}
         title="Add a co-founder"
@@ -611,7 +639,9 @@ export function Settings() {
   const { data, me, setPreferences, leave } = useStore();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [message, setMessage] = useState('');
+    [message, setMessage] = useState(''),
+    [signingOut, setSigningOut] = useState(false),
+    [signOutError, setSignOutError] = useState('');
   async function change(cadence: number, enabled: boolean) {
     setBusy(true);
     setError('');
@@ -728,11 +758,26 @@ export function Settings() {
             />
           </Card>
         ) : null}
+        <Text style={s.small}>
+          Signing out also stops your running work timer. Stay connected until your time is saved.
+        </Text>
+        <ErrorText text={signOutError} />
         <Button
-          title="Sign out"
+          title="Stop work & sign out"
           secondary
           icon="log-out-outline"
-          onPress={() => leave().catch((e) => setError(e.message))}
+          loading={signingOut}
+          onPress={async () => {
+            setSigningOut(true);
+            setSignOutError('');
+            try {
+              await leave();
+            } catch (e: any) {
+              setSignOutError(e.message);
+            } finally {
+              setSigningOut(false);
+            }
+          }}
         />
       </View>
     </>

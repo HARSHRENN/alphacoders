@@ -35,11 +35,19 @@ export type WorkUpdate = {
   period_hours: number;
   supersedes: string | null;
 };
+export type WorkSession = {
+  id: string;
+  org_id: string;
+  user_id: string;
+  started_at: string;
+  ended_at: string | null;
+};
 export type Workspace = { id: string; name: string; invite_code: string };
 export type Data = {
   workspace: Workspace;
   profiles: Profile[];
   projects: Project[];
   updates: WorkUpdate[];
+  work_sessions: WorkSession[];
 };
 export type UpdateInput = Omit<WorkUpdate, 'id' | 'org_id' | 'user_id' | 'created_at'>;

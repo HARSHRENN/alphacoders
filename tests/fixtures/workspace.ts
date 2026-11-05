@@ -85,6 +85,7 @@ export function createWorkspaceFixture(): Data {
         created_at: at(-70),
       },
     ],
+    work_sessions: [],
     updates: [
       {
         id: 'u1',
