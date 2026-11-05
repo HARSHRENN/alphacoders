@@ -47,6 +47,7 @@ function Workspace() {
     [refreshing, setRefreshing] = useState(false),
     [localError, setLocalError] = useState('');
   const post = (id?: string) => {
+    if (me?.role !== 'member') return;
     setProject(null);
     setRevision(undefined);
     setTarget(id);

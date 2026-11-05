@@ -6,6 +6,7 @@ import {
   workDayStart,
   formatWorkDuration,
   exportReport,
+  teamWorkSummary,
 } from '../src/lib/domain.ts';
 import type { WorkSession } from '../src/types.ts';
 import { createWorkspaceFixture } from './fixtures/workspace.ts';
@@ -47,4 +48,29 @@ test('daily founder report includes attribution, server start/stop times and wor
   assert.match(report, /Start: .*Stop:/);
   assert.match(report, /WORK UPDATES TODAY/);
   assert.match(report, /Remaining:/);
+});
+
+test('founder overview totals exclude founders and count each reporting teammate once', () => {
+  const data = createWorkspaceFixture();
+  const now = new Date(2026, 10, 5, 12).getTime();
+  const at = (hours: number) => new Date(now + hours * 3600000).toISOString();
+  data.work_sessions = [
+    { ...session(at(-1), null), user_id: 'maya' },
+    { ...session(at(-4), at(-3)), user_id: 'james' },
+    { ...session(at(-10), null), user_id: 'me' },
+  ];
+  const update = data.updates[0];
+  data.updates = [
+    { ...update, user_id: 'maya', created_at: at(-1) },
+    { ...update, id: 'revision', user_id: 'maya', created_at: at(-0.5) },
+    { ...update, id: 'founder', user_id: 'me', created_at: at(-1) },
+    { ...update, id: 'yesterday', user_id: 'james', created_at: at(-24) },
+  ];
+  const summary = teamWorkSummary(data, now);
+  assert.equal(summary.members, 3);
+  assert.equal(summary.updatedMembers, 1);
+  assert.equal(summary.workingMembers, 1);
+  assert.equal(summary.totalMs, 2 * 3600000);
+  const report = exportReport(data).split('WORK UPDATES TODAY')[0];
+  assert.ok(!report.includes('Alex Morgan:'));
 });

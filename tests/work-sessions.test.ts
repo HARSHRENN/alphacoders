@@ -27,6 +27,11 @@ test('server work clocks preserve timestamps and enforce self/founder access', a
       'utf8',
     ),
   );
+  const memberClockMigration = await readFile(
+    new URL('../supabase/migrations/202611050002_member_work_clocks.sql', import.meta.url),
+    'utf8',
+  );
+  await db.exec(memberClockMigration);
   const claims = (sub: string) => ({
     sub,
     iss: 'https://securetoken.google.com/alphacoders-593b1',
@@ -72,6 +77,9 @@ test('server work clocks preserve timestamps and enforce self/founder access', a
   await as(colleague, "select public.join_workspace('Colleague',$1)", [invite]);
   await as(outsider, "select public.create_workspace('Outside','Other team')");
   const memberId = (await as(member, 'select public.current_user_id() id')).rows[0].id;
+  await t.test('founders cannot start a personal timer', async () => {
+    await assert.rejects(as(founder, 'select * from public.start_work()'), /team members only/);
+  });
   let session: any;
   await t.test('repeated starts return the same server-created running session', async () => {
     const before = Date.now();
@@ -184,5 +192,70 @@ test('server work clocks preserve timestamps and enforce self/founder access', a
       );
     },
   );
+  await t.test('founders receive team alerts, not personal check-in prompts', async () => {
+    await db.exec(
+      "update public.profiles set notifications_enabled=true,reminder_anchor=now()-interval '1 hour'",
+    );
+    await db.exec('select public.enqueue_reminders()');
+    const founderId = (await as(founder, 'select public.current_user_id() id')).rows[0].id;
+    assert.equal(
+      (
+        await db.query<any>(
+          "select count(*)::int n from public.notification_jobs where user_id=$1 and event_key like 'checkin:%'",
+          [founderId],
+        )
+      ).rows[0].n,
+      0,
+    );
+    assert.ok(
+      (
+        await db.query<any>(
+          "select count(*)::int n from public.notification_jobs where user_id=$1 and event_key like 'checkin:%'",
+          [memberId],
+        )
+      ).rows[0].n > 0,
+    );
+  });
+  await t.test('promoting a working member ends their clock without losing history', async () => {
+    const colleagueId = (await as(colleague, 'select public.current_user_id() id')).rows[0].id;
+    await as(founder, 'select public.promote_founder($1)', [colleagueId]);
+    const rows = (
+      await as(founder, 'select * from public.work_sessions where user_id=$1', [colleagueId])
+    ).rows;
+    assert.equal(rows.length, 1);
+    assert.ok(rows[0].ended_at);
+    await assert.rejects(as(colleague, 'select * from public.start_work()'), /team members only/);
+    assert.equal(
+      (
+        await db.query<any>(
+          "select count(*)::int n from public.notification_jobs where user_id=$1 and event_key like 'checkin:%' and status='pending'",
+          [colleagueId],
+        )
+      ).rows[0].n,
+      0,
+    );
+  });
+  await t.test('migration closes legacy founder clocks and is safe to repeat', async () => {
+    const founderId = (await as(founder, 'select public.current_user_id() id')).rows[0].id;
+    const row = (
+      await db.query<any>(
+        "insert into public.work_sessions(org_id,user_id,started_at) values($1,$2,now()-interval '1 hour') returning *",
+        [org, founderId],
+      )
+    ).rows[0];
+    await db.exec(memberClockMigration);
+    const ended = (
+      await db.query<any>('select ended_at from public.work_sessions where id=$1', [row.id])
+    ).rows[0].ended_at;
+    assert.ok(ended);
+    await db.exec(memberClockMigration);
+    assert.equal(
+      new Date(
+        (await db.query<any>('select ended_at from public.work_sessions where id=$1', [row.id]))
+          .rows[0].ended_at,
+      ).toISOString(),
+      new Date(ended).toISOString(),
+    );
+  });
   await db.close();
 });

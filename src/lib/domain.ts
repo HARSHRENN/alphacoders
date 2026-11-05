@@ -63,14 +63,16 @@ export function exportReport(data: Data) {
   return [
     `${data.workspace.name} · Daily report · ${new Date().toLocaleDateString()}`,
     'WORK TIME TODAY',
-    ...data.profiles.map((person) => {
-      const now = Date.now();
-      const from = workDayStart(now);
-      const sessions = (data.work_sessions || []).filter(
-        (work) => work.user_id === person.id && workDurationMs(work, from, now) > 0,
-      );
-      return `${person.name}: ${formatWorkDuration(workTotalMs(sessions, from, now))}\n${sessions.map((work) => `Start: ${new Date(work.started_at).toLocaleString()} · Stop: ${work.ended_at ? new Date(work.ended_at).toLocaleString() : 'Still working'}`).join('\n')}`;
-    }),
+    ...data.profiles
+      .filter((person) => person.role === 'member')
+      .map((person) => {
+        const now = Date.now();
+        const from = workDayStart(now);
+        const sessions = (data.work_sessions || []).filter(
+          (work) => work.user_id === person.id && workDurationMs(work, from, now) > 0,
+        );
+        return `${person.name}: ${formatWorkDuration(workTotalMs(sessions, from, now))}\n${sessions.map((work) => `Start: ${new Date(work.started_at).toLocaleString()} · Stop: ${work.ended_at ? new Date(work.ended_at).toLocaleString() : 'Still working'}`).join('\n')}`;
+      }),
     'WORK UPDATES TODAY',
     ...data.updates
       .filter((u) => isToday(u.created_at))
@@ -104,4 +106,38 @@ export function formatWorkDuration(ms: number, seconds = false) {
   return seconds
     ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
     : `${hours}h ${minutes}m`;
+}
+
+/** Founder totals count team members only; old founder sessions never inflate them. */
+export function teamWorkSummary(data: Data, now: number) {
+  const memberIds = new Set(
+    data.profiles.filter((person) => person.role === 'member').map((person) => person.id),
+  );
+  const from = workDayStart(now);
+  const sessions = data.work_sessions.filter((work) => memberIds.has(work.user_id));
+  const today = data.updates.filter(
+    (update) =>
+      memberIds.has(update.user_id) &&
+      Date.parse(update.created_at) >= from &&
+      Date.parse(update.created_at) <= now,
+  );
+  const projects = data.projects.filter((project) => !project.archived);
+  const progress = projects.map((project) => ({
+    project,
+    value: projectProgress(project.id, data.updates),
+  }));
+  return {
+    members: memberIds.size,
+    updatedMembers: new Set(today.map((update) => update.user_id)).size,
+    workingMembers: new Set(
+      sessions
+        .filter((work) => !work.ended_at && Date.parse(work.started_at) <= now)
+        .map((work) => work.user_id),
+    ).size,
+    totalMs: workTotalMs(sessions, from, now),
+    completedProjects: progress.filter((item) => item.value === 100).length,
+    overdueProjects: progress.filter(
+      (item) => item.value < 100 && Date.parse(item.project.deadline) < now,
+    ).length,
+  };
 }

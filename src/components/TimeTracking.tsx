@@ -51,6 +51,7 @@ export function WorkClock() {
       setBusy(false);
     }
   }
+  if (me?.role !== 'member') return null;
   return (
     <>
       <Card

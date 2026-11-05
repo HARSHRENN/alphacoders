@@ -193,7 +193,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   async function leave() {
     // Stop on the server first, including sessions started from another device.
     // A failed request must not silently sign someone out with their clock running.
-    if (supabase && me) {
+    if (supabase && me?.role === 'member') {
       const { error: stopError } = await supabase.rpc('stop_work');
       if (stopError)
         throw new Error(
@@ -215,6 +215,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }
   async function changeWorkClock(action: 'start_work' | 'stop_work', sessionId?: string) {
     if (!supabase || !me) throw new Error('Please sign in to your workspace.');
+    if (action === 'start_work' && me.role !== 'member')
+      throw new Error('Work timers are for team members only.');
     const uid = firebaseAuth?.currentUser?.uid;
     const result =
       action === 'stop_work'
