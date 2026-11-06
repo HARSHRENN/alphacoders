@@ -66,6 +66,10 @@ const bundle = run('unzip', ['-p', apk, 'assets/index.android.bundle'], true);
 for (const marker of [
   'View team & hours',
   'Send work update',
+  'Founder login',
+  'Create account to join',
+  'Date (YYYY-MM-DD)',
+  'Time (24-hour)',
   'Work timers are for team members only.',
   'jrvqllgpuhzwyswwmpka.supabase.co',
 ])

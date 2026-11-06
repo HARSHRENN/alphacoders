@@ -1,6 +1,6 @@
 {
   "name": "pulse-team",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "engines": {
     "node": "24.x"
   },
