@@ -64,3 +64,7 @@ The member-only clock migration `202611050002_member_work_clocks.sql` is applied
 ## Simplified 1.2.0 release
 
 The app now has three main phone tabs and a one-page update form. The signed Android 1.2.0 APK (version code 3) has the same package and signing identity as previous releases, the current embedded app code, and the configured native Firebase resources. Installation over 1.1.0 and a cold launch passed on the API 36.1 emulator, with no app-scoped fatal or React Native errors. The API, database schema, founder/member clock rules, and notification scheduling were not changed by this UI simplification. Physical-phone shared-data and background-notification acceptance remains outstanding.
+
+## Android 1.2.1
+
+Version code 4 includes invite-first team signup, the separate founder login entry, and separate Date/Time fields. Signature and embedded configuration checks passed. The APK upgraded 1.2.0 and cold-started on the API 36.1 emulator without app-scoped fatal or React Native errors. Test account passwords and server credentials are not embedded. Physical-phone background notification acceptance remains outstanding.

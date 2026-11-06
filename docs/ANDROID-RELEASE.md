@@ -1,8 +1,8 @@
-# Android release 1.2.0
+# Android release 1.2.1
 
-This release simplifies daily use to three phone tabs, one-page work updates, a focused member Home screen, and a founder team overview. It uses the live Firebase/Supabase backend. Android version code 3 upgrades the version-code-2 APK using the existing signing identity.
+This release adds invite-first team signup, a separate founder login entry, and separate Date and Time inputs to the simplified three-tab app. It uses the live Firebase/Supabase backend. Android version code 4 upgrades the version-code-3 APK using the existing signing identity.
 
-The APK was built locally using the owner’s approved local-build method. Expo regenerated the native project from app configuration and the original key signed the release. Binary verification, installation over 1.1.0, and a cold launch passed on the API 36.1 emulator with no app-scoped fatal or React Native errors. Version, signing certificate, SHA-256, size, and source commit are recorded in `releases/android-release.json`.
+The APK was built locally using the owner’s approved local-build method. Expo regenerated the native project from app configuration and the original key signed the release. Binary verification, installation over the previous release, and a cold launch passed on the API 36.1 emulator with no app-scoped fatal or React Native errors. Version, signing certificate, SHA-256, size, and source commit are recorded in `releases/android-release.json`.
 
 For future cloud builds, use the following process.
 

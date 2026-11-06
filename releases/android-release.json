@@ -1,13 +1,13 @@
 {
-  "version": "1.2.0",
-  "versionCode": 3,
+  "version": "1.2.1",
+  "versionCode": 4,
   "packageName": "com.pulseteam.app",
   "platform": "android",
   "filename": "alphacoders.apk",
-  "sha256": "fef28e339063f8a7c15dd2a7418c709d21a2cb2330e00ce5adc9f59613909b48",
-  "size": 47169187,
+  "sha256": "7370a203b23feaf3d0d5cc24a468af15c84272d62095be15c332263bacb0786b",
+  "size": 47173283,
   "signerSha256": "604cc55fdbbf574d517fca12f6cba0153b5995d656ae4d05aeac78631c9c2672",
-  "sourceCommit": "39baaa05ce90d931e16c770c44e2c586d246345c",
-  "buildId": "local-39baaa0",
-  "verifiedAt": "2026-11-06T06:37:06.528Z"
+  "sourceCommit": "28c40d088c2b5bf80d6ec1983256c2662faf7d03",
+  "buildId": "local-28c40d0",
+  "verifiedAt": "2026-11-06T12:23:38.457Z"
 }
