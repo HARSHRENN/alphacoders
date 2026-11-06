@@ -6,7 +6,7 @@ An Android-first React Native + Expo app for recurring work check-ins, multiple 
 
 ## Use the hosted app
 
-Web app: https://alphacoders-six.vercel.app. Android download: https://alphacoders-six.vercel.app/downloads/alphacoders.apk. Sign in with your verified account; teammates sign up and join using the workspace invite code. The hosted app and standalone APK use Firebase/Supabase directly and do not require Metro or the development computer. The downloadable APK is version 1.1.0 (Android version code 2), with the latest UI, member-only work clocks, and founder team overview. Its signature, embedded backend/Firebase resources, and upgrade from the earlier APK were verified. Android notification delivery still needs a physical-device check.
+Web app: https://alphacoders-six.vercel.app. Android download: https://alphacoders-six.vercel.app/downloads/alphacoders.apk. Sign in with your verified account; teammates sign up and join using the workspace invite code. The hosted app and standalone APK use Firebase/Supabase directly and do not require Metro or the development computer. The downloadable APK is version 1.2.0 (Android version code 3), with the latest UI, member-only work clocks, and founder team overview. Its signature, embedded backend/Firebase resources, and upgrade from the earlier APK were verified. Android notification delivery still needs a physical-device check.
 
 ## Try it locally
 
@@ -128,6 +128,10 @@ Apply `supabase/migrations/202611050002_member_work_clocks.sql` after the work-s
 
 ## Android 1.1.0 release preparation
 
-The prepared cloud release uses `eas.json` profile `release`, app version 1.1.0, and Android version code 2. It keeps the original package/signing identity for upgrades and excludes unused overlay/storage permissions. See [the Android release steps and phone acceptance checks](docs/ANDROID-RELEASE.md). The current download is not replaced until the new binary passes `scripts/publish-android-release.mjs`; source version changes alone never relabel the earlier APK as a new release.
+The prepared cloud release uses `eas.json` profile `release`, app version 1.2.0, and Android version code 3. It keeps the original package/signing identity for upgrades and excludes unused overlay/storage permissions. See [the Android release steps and phone acceptance checks](docs/ANDROID-RELEASE.md). The current download is not replaced until the new binary passes `scripts/publish-android-release.mjs`; source version changes alone never relabel the earlier APK as a new release.
 
 The owner approved a local build for 1.1.0 after the Expo device-login code expired. Expo regenerated Android files from app configuration; the signed release passed the binary checks and upgraded the previous APK on the API 36.1 emulator. Physical-phone shared-data and background push tests remain required before broad rollout.
+
+## Simpler daily use in 1.2.0
+
+The phone has three tabs: **Home**, **Projects**, and **Team**. Members start/stop work on Home, use **Send work update** to complete one form, and open **My hours** for history. Founder Home shows team totals and recent updates; **View team & hours** opens member reports. Full update history is under **View all**, with a Back to Home button. Updates show completed work, remaining work, and finish time together. Optional blockers, exact progress, and reporting period are under **More options**. Team invitations use **Share invite**; role changes are under **Manage team access**.

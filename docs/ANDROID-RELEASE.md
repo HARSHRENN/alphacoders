@@ -1,8 +1,8 @@
-# Android release 1.1.0
+# Android release 1.2.0
 
-This release includes the new UI, member-only work clocks, founder team totals, project work updates, and the live Firebase/Supabase configuration. Android version code 2 upgrades the earlier version-code-1 APK using the existing signing identity.
+This release simplifies daily use to three phone tabs, one-page work updates, a focused member Home screen, and a founder team overview. It uses the live Firebase/Supabase backend. Android version code 3 upgrades the version-code-2 APK using the existing signing identity.
 
-The 1.1.0 APK was built locally with explicit owner approval after the cloud device-login code expired. `npm run apk:local -- --prebuild` regenerated the native project with Expo and signed with the original key. Signature checks passed, and installation over the earlier APK and a cold launch succeeded on the API 36.1 emulator with no app-scoped fatal or React Native errors. The version, signing certificate, SHA-256, size, and source commit are recorded in `releases/android-release.json`.
+The APK was built locally using the owner’s approved local-build method. Expo regenerated the native project from app configuration and the original key signed the release. Binary verification, installation over 1.1.0, and a cold launch passed on the API 36.1 emulator with no app-scoped fatal or React Native errors. Version, signing certificate, SHA-256, size, and source commit are recorded in `releases/android-release.json`.
 
 For future cloud builds, use the following process.
 
