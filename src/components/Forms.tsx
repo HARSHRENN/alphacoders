@@ -53,6 +53,7 @@ function TimeOptions({
   onSelectHours: (hours: number | undefined) => void;
 }) {
   const [custom, setCustom] = useState(false);
+  const [date = '', time = ''] = value.split(' ');
   return (
     <View style={{ gap: 10, marginBottom: 16 }}>
       <Text style={s.h3}>{label}</Text>
@@ -85,15 +86,30 @@ function TimeOptions({
         <Icon name={custom ? 'chevron-up' : 'chevron-down'} size={16} color={C.muted} />
       </Pressable>
       {custom ? (
-        <Field
-          label="Date and time (YYYY-MM-DD HH:mm)"
-          value={value}
-          onChangeText={(next) => {
-            onSelectHours(undefined);
-            onChange(next);
-          }}
-          placeholder="2026-11-06 18:00"
-        />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          <View style={{ flex: 2, minWidth: 160 }}>
+            <Field
+              label="Date (YYYY-MM-DD)"
+              value={date}
+              onChangeText={(next) => {
+                onSelectHours(undefined);
+                onChange(`${next.trim()} ${time}`);
+              }}
+              placeholder="2026-11-07"
+            />
+          </View>
+          <View style={{ flex: 1, minWidth: 110 }}>
+            <Field
+              label="Time (24-hour)"
+              value={time}
+              onChangeText={(next) => {
+                onSelectHours(undefined);
+                onChange(`${date} ${next.trim()}`);
+              }}
+              placeholder="18:00"
+            />
+          </View>
+        </View>
       ) : null}
     </View>
   );
