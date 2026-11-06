@@ -100,49 +100,51 @@ function Workspace() {
   if (!data || !me) return <Auth />;
   const nav = (bottom = false) =>
     tabs
-      .filter((item) => !bottom || item.name !== 'Settings')
-      .map((item) => (
-        <Pressable
-          key={item.name}
-          accessibilityRole="button"
-          accessibilityLabel={item.label}
-          accessibilityState={{ selected: tab === item.name }}
-          onPress={() => setTab(item.name)}
-          style={({ pressed }) => [
-            bottom ? styles.bottomItem : styles.navItem,
-            tab === item.name && styles.navActive,
-            pressed && { opacity: 0.6 },
-          ]}
-        >
-          <Icon
-            name={item.icon}
-            size={bottom ? 21 : 19}
-            color={tab === item.name ? C.white : C.muted}
-          />
-          <Text
-            style={{
-              fontSize: bottom ? 12 : 13,
-              color: tab === item.name ? C.white : C.muted,
-              fontWeight: tab === item.name ? '600' : '400',
+      .filter((item) => !bottom || (item.name !== 'Settings' && item.name !== 'Updates'))
+      .map((item) => {
+        const selected =
+          tab === item.name || (bottom && tab === 'Updates' && item.name === 'Overview');
+        return (
+          <Pressable
+            key={item.name}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
+            accessibilityState={{
+              selected: selected,
             }}
+            onPress={() => setTab(item.name)}
+            style={({ pressed }) => [
+              bottom ? styles.bottomItem : styles.navItem,
+              selected && styles.navActive,
+              pressed && { opacity: 0.6 },
+            ]}
           >
-            {item.label}
-          </Text>
-          {!bottom && item.name === 'Updates' ? (
-            <View
+            <Icon name={item.icon} size={bottom ? 21 : 19} color={selected ? C.white : C.muted} />
+            <Text
               style={{
-                marginLeft: 'auto',
-                backgroundColor: '#e4eddf',
-                borderRadius: 5,
-                paddingHorizontal: 6,
-                paddingVertical: 2,
+                fontSize: bottom ? 12 : 13,
+                color: selected ? C.white : C.muted,
+                fontWeight: selected ? '600' : '400',
               }}
             >
-              <Text style={{ fontSize: 10, color: '#67805c' }}>{data.updates.length}</Text>
-            </View>
-          ) : null}
-        </Pressable>
-      ));
+              {item.label}
+            </Text>
+            {!bottom && item.name === 'Updates' ? (
+              <View
+                style={{
+                  marginLeft: 'auto',
+                  backgroundColor: '#e4eddf',
+                  borderRadius: 5,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                }}
+              >
+                <Text style={{ fontSize: 10, color: '#67805c' }}>{data.updates.length}</Text>
+              </View>
+            ) : null}
+          </Pressable>
+        );
+      });
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
       <View style={{ flex: 1, flexDirection: 'row' }}>
@@ -212,9 +214,20 @@ function Workspace() {
           <View style={[styles.topbar, { paddingHorizontal: desktop ? 24 : 16 }]}>
             <View style={[s.row, { gap: 9 }]}>
               {!desktop ? (
-                <View style={styles.logoIcon}>
-                  <Icon name="pulse" color={C.accent} size={21} />
-                </View>
+                tab === 'Updates' ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Back to Home"
+                    onPress={() => setTab('Overview')}
+                    style={{ minHeight: 44, minWidth: 36, justifyContent: 'center' }}
+                  >
+                    <Icon name="arrow-back" />
+                  </Pressable>
+                ) : (
+                  <View style={styles.logoIcon}>
+                    <Icon name="pulse" color={C.accent} size={21} />
+                  </View>
+                )
               ) : (
                 <Icon name="home-outline" size={14} color={C.muted} />
               )}
@@ -227,7 +240,7 @@ function Workspace() {
                   </Text>
                 </>
               ) : (
-                <Text style={styles.logo}>alphacoders</Text>
+                <Text style={styles.logo}>{tab === 'Updates' ? 'Updates' : 'alphacoders'}</Text>
               )}
             </View>
             <View style={[s.row, { gap: 14 }]}>

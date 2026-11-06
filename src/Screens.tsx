@@ -43,184 +43,76 @@ type Navigation = {
   onNavigate: (tab: string) => void;
   onNewProject: () => void;
 };
-export function Overview({ onUpdate, onProject, onNavigate, onNewProject }: Navigation) {
+export function Overview({ onUpdate, onNavigate, onNewProject }: Navigation) {
   const { data, me } = useStore();
-  const { width } = useWindowDimensions();
   const now = useClock();
-  const projects = data!.projects.filter((p) => !p.archived);
-  const today = data!.updates.filter((u) => isToday(u.created_at));
-  const members = data!.profiles.filter((person) => person.role === 'member');
-  const checkedIn = new Set(
-    today.filter((u) => members.some((person) => person.id === u.user_id)).map((u) => u.user_id),
-  ).size;
-  const due = nextDue(me!.reminder_anchor, me!.cadence, now);
-  const minutes = Math.ceil((due - now) / 60000);
   const founder = me!.role === 'founder';
-  const firstProject = !data!.projects.length;
+  const hasProjects = data!.projects.some((project) => !project.archived);
+  const due = nextDue(me!.reminder_anchor, me!.cadence, now);
+  const recent = (
+    founder ? data!.updates : data!.updates.filter((update) => update.user_id === me!.id)
+  ).slice(0, founder ? 3 : 1);
   return (
     <>
       <Heading
-        eyebrow={data!.workspace.name.toUpperCase()}
-        title={`Hi, ${me!.name.split(' ')[0]}`}
-        description={
-          founder ? 'Review your team’s work and progress.' : 'Let’s make progress today.'
-        }
+        title={founder ? 'Team today' : `Hi, ${me!.name.split(' ')[0]}`}
+        description={data!.workspace.name}
       />
-      {founder ? (
-        <TeamProgress onTeam={() => onNavigate('Team')} onUpdates={() => onNavigate('Updates')} />
-      ) : (
-        <WorkClock />
-      )}
-      {projects.length ? (
-        !founder ? (
-          <Card style={{ gap: 8, marginBottom: 18 }}>
-            <View style={[s.row, { gap: 10 }]}>
-              <View style={{ flex: 1, gap: 4 }}>
-                <Text style={s.h2}>Work update</Text>
-                <Text style={s.small}>Done, next steps & finish time.</Text>
-              </View>
-              <Button title="Post update" small icon="add" onPress={() => onUpdate()} />
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Manage work reminders"
-              onPress={() => onNavigate('Settings')}
-              style={({ pressed }) => [
-                s.row,
-                { minHeight: 44, opacity: pressed ? 0.6 : 1, gap: 7 },
-              ]}
-            >
-              <Icon name="time-outline" size={17} color={C.green} />
-              <Text style={[s.small, { flex: 1 }]}>
-                Next update in {minutes} min · {timeLabel(new Date(due).toISOString())}
-              </Text>
-              <Text style={[s.small, { color: C.green }]}>
-                {me!.notifications_enabled ? 'Reminders on' : 'Reminders off'}
-              </Text>
-              <Icon name="chevron-forward" size={14} color={C.green} />
-            </Pressable>
-          </Card>
-        ) : null
-      ) : (
-        <Card style={{ gap: 14, marginBottom: 16 }}>
-          <View style={[s.row, { alignItems: 'flex-start' }]}>
-            <View style={s.emptyIcon}>
-              <Icon name="layers-outline" color={C.green} size={23} />
-            </View>
-            <View style={{ flex: 1, gap: 6 }}>
-              <Text style={s.h2}>
-                {firstProject ? 'Start with a project' : 'No active projects'}
-              </Text>
-              <Text style={s.body}>
-                {founder
-                  ? 'Add the work your team is doing. Everyone can then share updates in that project.'
-                  : 'Your founder will add projects here. You can post an update as soon as a project is ready.'}
-              </Text>
-            </View>
-          </View>
-          {founder ? (
-            <Button
-              title={firstProject ? 'Create first project' : 'Create project'}
-              icon="add"
-              onPress={onNewProject}
-            />
-          ) : (
-            <Button title="View your team" secondary onPress={() => onNavigate('Team')} />
-          )}
-          {founder && !firstProject ? (
-            <Link text="Open projects" onPress={() => onNavigate('Projects')} />
-          ) : null}
-        </Card>
-      )}
-      {projects.length ? (
-        <>
-          <Section
-            title="Your projects"
-            action={<Link text="View all" onPress={() => onNavigate('Projects')} />}
-          />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-            {projects.slice(0, 2).map((p) => (
-              <View
-                key={p.id}
-                style={{ flexGrow: 1, flexBasis: width >= 700 ? '46%' : '100%', minWidth: 0 }}
-              >
-                <ProjectCard project={p} onPress={() => onProject(p)} />
-              </View>
-            ))}
-          </View>
+      {founder ? <TeamProgress onTeam={() => onNavigate('Team')} /> : <WorkClock />}
+      {!hasProjects ? (
+        <Empty
+          title={founder ? 'Add your first project' : 'Your projects will appear here'}
+          body={
+            founder
+              ? 'Give your team a project and a deadline to get started.'
+              : 'Your founder will add projects. You can already use your work timer.'
+          }
+          action={
+            founder ? (
+              <Button title="Create project" icon="add" onPress={onNewProject} />
+            ) : undefined
+          }
+        />
+      ) : !founder ? (
+        <View style={{ gap: 6, marginBottom: 20 }}>
+          <Button title="Send work update" icon="create-outline" onPress={() => onUpdate()} />
           <Pressable
             accessibilityRole="button"
-            onPress={() => onNavigate('Team')}
-            style={({ pressed }) => [
-              s.row,
-              { minHeight: 48, marginBottom: 12, opacity: pressed ? 0.6 : 1 },
-            ]}
+            accessibilityLabel="Update reminder settings"
+            onPress={() => onNavigate('Settings')}
+            style={{ minHeight: 36, justifyContent: 'center' }}
           >
-            <Icon name="people-outline" color={C.green} />
-            <Text style={[s.body, { flex: 1 }]}>
-              {checkedIn} of {members.length} teammates posted today
+            <Text style={[s.small, { textAlign: 'center' }]}>
+              {me!.notifications_enabled
+                ? `Next reminder at ${timeLabel(new Date(due).toISOString())}`
+                : 'Turn on update reminders in Settings'}
             </Text>
-            <Icon name="chevron-forward" size={16} color={C.muted} />
           </Pressable>
+        </View>
+      ) : null}
+      {hasProjects ? (
+        <>
           <Section
-            title="Latest updates"
+            title={founder ? 'Recent work updates' : 'Your latest update'}
             action={<Link text="View all" onPress={() => onNavigate('Updates')} />}
           />
           <View style={{ gap: 12 }}>
-            {data!.updates.slice(0, 2).map((u) => (
-              <UpdateCard key={u.id} update={u} compact />
+            {recent.map((update) => (
+              <UpdateCard key={update.id} update={update} compact />
             ))}
-            {!data!.updates.length ? (
+            {!recent.length ? (
               <Empty
-                title="No updates yet"
+                title={founder ? 'Waiting for team updates' : 'No update sent yet'}
                 body={
                   founder
-                    ? 'Completed work, remaining tasks, and finish times will appear here when teammates post.'
-                    : 'Your team’s work updates will appear here. Post an update to add the first one.'
+                    ? 'Completed work, remaining tasks, and finish times will appear here.'
+                    : 'Use Send work update to tell your team what you finished and what is next.'
                 }
               />
             ) : null}
           </View>
         </>
-      ) : (
-        <Card style={{ gap: 14 }}>
-          <Text style={s.h3}>How it works</Text>
-          {[
-            ['1', 'Create a project', 'Give the work a name and a deadline.'],
-            ['2', 'Invite your team', 'Everyone signs in with their own account.'],
-            ['3', 'Share work updates', 'Post what’s done, what remains, and when it will finish.'],
-          ].map(([number, title, detail]) => (
-            <View key={number} style={[s.row, { alignItems: 'flex-start' }]}>
-              <View
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 13,
-                  backgroundColor: C.mint,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Text style={{ fontSize: 12, fontWeight: '700', color: C.green }}>{number}</Text>
-              </View>
-              <View style={{ flex: 1, gap: 3 }}>
-                <Text style={s.h3}>{title}</Text>
-                <Text style={s.body}>{detail}</Text>
-              </View>
-            </View>
-          ))}
-          <View style={{ borderTopWidth: 1, borderColor: C.line }} />
-          <Button
-            title={founder ? 'Invite teammates' : 'View team'}
-            secondary
-            icon="people-outline"
-            onPress={() => onNavigate('Team')}
-          />
-          {!founder ? (
-            <Link text="Set up work reminders" onPress={() => onNavigate('Settings')} />
-          ) : null}
-        </Card>
-      )}
+      ) : null}
     </>
   );
 }
@@ -511,6 +403,7 @@ export function Team() {
   const { data, me, promote } = useStore();
   const { width } = useWindowDimensions();
   const [error, setError] = useState('');
+  const [manageAccess, setManageAccess] = useState(false);
   const [candidate, setCandidate] = useState<string | null>(null);
   const [timePerson, setTimePerson] = useState<string | null>(null);
   const now = useClock();
@@ -526,129 +419,135 @@ export function Team() {
   };
   return (
     <>
-      <Heading
-        eyebrow="YOUR WORKSPACE"
-        title="Team"
-        description="Invite teammates and see who posted an update today."
-        action={
-          me!.role === 'founder' ? (
-            <Button title="Invite your team" icon="person-add-outline" onPress={invite} />
-          ) : undefined
-        }
-      />
+      <Heading title="Team" description="Your people and their work hours." />
       <ErrorText text={error} />
       {me!.role === 'founder' ? (
-        <Card style={{ marginBottom: 16, backgroundColor: '#edf3e9' }}>
-          <View style={[s.row, { flexWrap: 'wrap' }]}>
-            <Icon name="link-outline" color={C.green} />
-            <View style={{ flex: 1, minWidth: 180, gap: 5 }}>
-              <Text style={s.h3}>Share your workspace invite code</Text>
-              <Text style={s.body}>
-                {`Invite code: ${data!.workspace.invite_code} · New members get their own login.`}
-              </Text>
-            </View>
-            <Tag text="Invite-only workspace" />
+        <Card style={{ marginBottom: 16, backgroundColor: C.mint, gap: 8 }}>
+          <Text style={s.label}>Team invite code</Text>
+          <View style={[s.row, { justifyContent: 'space-between', flexWrap: 'wrap' }]}>
+            <Text style={{ fontSize: 22, color: C.ink, fontWeight: '600' }}>
+              {data!.workspace.invite_code}
+            </Text>
+            <Button title="Share invite" small icon="share-outline" onPress={invite} />
           </View>
+          <Text style={s.small}>Teammates enter this code after creating an account.</Text>
         </Card>
       ) : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-        {data!.profiles.map((p) => {
-          const updates = data!.updates.filter((u) => u.user_id === p.id && isToday(u.created_at));
-          const projects = new Set(
-            data!.updates.filter((u) => u.user_id === p.id).map((u) => u.project_id),
-          );
-          const canViewTime = p.role === 'member' && (me!.role === 'founder' || p.id === me!.id);
-          const workSessions = data!.work_sessions.filter((work) => work.user_id === p.id);
-          const working = workSessions.some((work) => !work.ended_at);
-          return (
-            <Card
-              key={p.id}
-              style={{
-                flexBasis: width < 600 ? '100%' : 280,
-                flexGrow: 1,
-                maxWidth: width < 600 ? undefined : 420,
-              }}
-            >
-              <View style={[s.row, { justifyContent: 'space-between', marginBottom: 12 }]}>
-                <Avatar name={p.name} color={p.avatar} size={40} />
-                <Tag
-                  text={p.role === 'founder' ? 'Founder' : 'Member'}
-                  bg={p.role === 'founder' ? C.mint : '#f1f3f1'}
-                  color={p.role === 'founder' ? C.green : C.muted}
-                />
-              </View>
-              <Text style={s.h2}>
-                {p.name}
-                {p.id === me!.id ? ' (you)' : ''}
-              </Text>
-              {p.role === 'member' ? (
-                <>
-                  <Text style={[s.body, { marginTop: 6 }]}>
-                    Every {p.cadence} hour{p.cadence > 1 ? 's' : ''} · Check-in rhythm
-                  </Text>
-                  <View style={s.divider} />
-                  <View style={[s.row, { justifyContent: 'space-between' }]}>
-                    <View>
-                      <Text style={{ fontSize: 22, color: C.ink, fontWeight: '600' }}>
-                        {updates.length}
-                      </Text>
-                      <Text style={s.small}>Updates today</Text>
-                    </View>
-                    <View>
-                      <Text style={{ fontSize: 22, color: C.ink, fontWeight: '600' }}>
-                        {canViewTime
-                          ? formatWorkDuration(workTotalMs(workSessions, workDayStart(now), now))
-                          : projects.size}
-                      </Text>
-                      <Text style={s.small}>
-                        {canViewTime ? 'Time today' : 'Projects contributed'}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={[s.row, { marginTop: 12, gap: 7 }]}>
-                    <Icon
-                      name={updates.length ? 'checkmark-circle' : 'time-outline'}
-                      size={15}
-                      color={updates.length ? '#6a9e70' : C.orange}
-                    />
-                    <Text style={s.small}>
-                      {updates.length
-                        ? 'Checked in ' + relative(updates[0].created_at)
-                        : 'No check-in yet today'}
-                    </Text>
-                  </View>
-                  {canViewTime ? (
-                    <View style={{ marginTop: 12, gap: 8 }}>
-                      {working ? <Tag text="Working now" /> : null}
-                      <Button
-                        title="View work & time"
-                        secondary
-                        small
-                        icon="timer-outline"
-                        onPress={() => setTimePerson(p.id)}
-                      />
-                    </View>
-                  ) : null}
-                </>
-              ) : (
-                <Text style={[s.body, { marginTop: 8 }]}>
-                  Manages projects and reviews team progress.
-                </Text>
-              )}
-              {me!.role === 'founder' && p.role === 'member' ? (
-                <View style={{ marginTop: 16 }}>
-                  <Button
-                    title="Make co-founder"
-                    secondary
-                    small
-                    onPress={() => setCandidate(p.id)}
+        {[...data!.profiles]
+          .sort(
+            (a, b) =>
+              Number(b.role === 'member') - Number(a.role === 'member') ||
+              a.name.localeCompare(b.name),
+          )
+          .map((p) => {
+            const updates = data!.updates.filter(
+              (u) => u.user_id === p.id && isToday(u.created_at),
+            );
+            const projects = new Set(
+              data!.updates.filter((u) => u.user_id === p.id).map((u) => u.project_id),
+            );
+            const canViewTime = p.role === 'member' && (me!.role === 'founder' || p.id === me!.id);
+            const workSessions = data!.work_sessions.filter((work) => work.user_id === p.id);
+            const working = workSessions.some((work) => !work.ended_at);
+            return (
+              <Card
+                key={p.id}
+                style={{
+                  flexBasis: width < 600 ? '100%' : 280,
+                  flexGrow: 1,
+                  maxWidth: width < 600 ? undefined : 420,
+                }}
+              >
+                <View style={[s.row, { justifyContent: 'space-between', marginBottom: 12 }]}>
+                  <Avatar name={p.name} color={p.avatar} size={40} />
+                  <Tag
+                    text={p.role === 'founder' ? 'Founder' : 'Member'}
+                    bg={p.role === 'founder' ? C.mint : '#f1f3f1'}
+                    color={p.role === 'founder' ? C.green : C.muted}
                   />
                 </View>
-              ) : null}
-            </Card>
-          );
-        })}
+                <Text style={s.h2}>
+                  {p.name}
+                  {p.id === me!.id ? ' (you)' : ''}
+                </Text>
+                {p.role === 'member' ? (
+                  <>
+                    <View style={s.divider} />
+                    <View style={[s.row, { justifyContent: 'space-between' }]}>
+                      <View>
+                        <Text style={{ fontSize: 22, color: C.ink, fontWeight: '600' }}>
+                          {updates.length}
+                        </Text>
+                        <Text style={s.small}>Updates today</Text>
+                      </View>
+                      <View>
+                        <Text style={{ fontSize: 22, color: C.ink, fontWeight: '600' }}>
+                          {canViewTime
+                            ? formatWorkDuration(workTotalMs(workSessions, workDayStart(now), now))
+                            : projects.size}
+                        </Text>
+                        <Text style={s.small}>
+                          {canViewTime ? 'Time today' : 'Projects contributed'}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={[s.row, { marginTop: 12, gap: 7 }]}>
+                      <Icon
+                        name={updates.length ? 'checkmark-circle' : 'time-outline'}
+                        size={15}
+                        color={updates.length ? '#6a9e70' : C.orange}
+                      />
+                      <Text style={s.small}>
+                        {updates.length
+                          ? 'Checked in ' + relative(updates[0].created_at)
+                          : 'No check-in yet today'}
+                      </Text>
+                    </View>
+                    {canViewTime ? (
+                      <View style={{ marginTop: 12, gap: 8 }}>
+                        {working ? <Tag text="Working now" /> : null}
+                        <Button
+                          title="Work & hours"
+                          secondary
+                          small
+                          icon="timer-outline"
+                          onPress={() => setTimePerson(p.id)}
+                        />
+                      </View>
+                    ) : null}
+                  </>
+                ) : (
+                  <Text style={[s.body, { marginTop: 8 }]}>
+                    Manages projects and reviews team progress.
+                  </Text>
+                )}
+                {manageAccess && me!.role === 'founder' && p.role === 'member' ? (
+                  <View style={{ marginTop: 16 }}>
+                    <Button
+                      title="Make co-founder"
+                      secondary
+                      small
+                      onPress={() => setCandidate(p.id)}
+                    />
+                  </View>
+                ) : null}
+              </Card>
+            );
+          })}
       </View>
+      {me!.role === 'founder' ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: manageAccess }}
+          onPress={() => setManageAccess((open) => !open)}
+          style={{ minHeight: 48, justifyContent: 'center', marginTop: 12 }}
+        >
+          <Text style={{ color: C.muted, fontSize: 13 }}>
+            {manageAccess ? 'Hide access settings' : 'Manage team access'}
+          </Text>
+        </Pressable>
+      ) : null}
       {selectedPerson ? (
         <WorkTimeHistory person={selectedPerson} onClose={() => setTimePerson(null)} />
       ) : null}

@@ -1,5 +1,5 @@
 import { Text } from './Typography';
-import React, { useState } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 import { WorkUpdate } from '../types';
 import { useStore } from '../store';
@@ -14,14 +14,12 @@ export function UpdateCard({
   onRevise?: (u: WorkUpdate) => void;
   compact?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const details = !compact || expanded;
   const { data, me } = useStore();
   const person = data!.profiles.find((p) => p.id === u.user_id);
   const project = data!.projects.find((p) => p.id === u.project_id);
   const revised = data!.updates.some((other) => other.supersedes === u.id);
   return (
-    <Card style={{ padding: 16 }}>
+    <Card style={{ padding: compact ? 14 : 16 }}>
       <View style={[s.row, { alignItems: 'flex-start' }]}>
         <Avatar name={person?.name || 'Team member'} color={person?.avatar} size={38} />
         <View style={{ flex: 1, gap: 5 }}>
@@ -42,23 +40,16 @@ export function UpdateCard({
           <Icon name="checkmark-circle" color="#6b9d73" size={16} />
           <View style={{ flex: 1, gap: 3 }}>
             <Text style={s.label}>Finished</Text>
-            <Text
-              numberOfLines={compact && !expanded ? 3 : undefined}
-              style={[s.body, { color: '#455d50' }]}
-            >
-              {u.completed}
-            </Text>
+            <Text style={[s.body, { color: '#455d50' }]}>{u.completed}</Text>
           </View>
         </View>
-        {details ? (
-          <View style={[s.row, { alignItems: 'flex-start', gap: 9 }]}>
-            <Icon name="ellipse-outline" color={C.muted} size={16} />
-            <View style={{ flex: 1, gap: 3 }}>
-              <Text style={s.label}>Left to do</Text>
-              <Text style={s.body}>{u.remaining || 'All work completed.'}</Text>
-            </View>
+        <View style={[s.row, { alignItems: 'flex-start', gap: 9 }]}>
+          <Icon name="ellipse-outline" color={C.muted} size={16} />
+          <View style={{ flex: 1, gap: 3 }}>
+            <Text style={s.label}>Left to do</Text>
+            <Text style={s.body}>{u.remaining || 'All work completed.'}</Text>
           </View>
-        ) : null}
+        </View>
         {u.blocker ? (
           <View
             style={{
@@ -76,22 +67,14 @@ export function UpdateCard({
           </View>
         ) : null}
       </View>
-      {details ? (
-        <View style={[s.row, { marginTop: 14, justifyContent: 'space-between', flexWrap: 'wrap' }]}>
-          <Text style={s.small}>
-            Finish by: {dateLabel(u.eta)}, {timeLabel(u.eta)}
-          </Text>
-          {u.user_id === me?.id && !revised && onRevise ? (
-            <Link text="Edit update" onPress={() => onRevise(u)} />
-          ) : null}
-        </View>
-      ) : null}
-      {compact ? (
-        <Link
-          text={expanded ? 'Show less' : 'Remaining work & finish time'}
-          onPress={() => setExpanded((open) => !open)}
-        />
-      ) : null}
+      <View style={[s.row, { marginTop: 14, justifyContent: 'space-between', flexWrap: 'wrap' }]}>
+        <Text style={s.small}>
+          Finish by: {dateLabel(u.eta)}, {timeLabel(u.eta)}
+        </Text>
+        {u.user_id === me?.id && !revised && onRevise ? (
+          <Link text="Edit update" onPress={() => onRevise(u)} />
+        ) : null}
+      </View>
     </Card>
   );
 }

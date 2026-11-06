@@ -6,7 +6,7 @@ import { teamWorkSummary, formatWorkDuration } from '../lib/domain';
 import { Text } from './Typography';
 import { Card, Button, Tag, C, s } from './ui';
 
-export function TeamProgress({ onTeam, onUpdates }: { onTeam: () => void; onUpdates: () => void }) {
+export function TeamProgress({ onTeam }: { onTeam: () => void }) {
   const { data } = useStore();
   const now = useClock();
   const summary = teamWorkSummary(data!, now);
@@ -22,22 +22,23 @@ export function TeamProgress({ onTeam, onUpdates }: { onTeam: () => void; onUpda
       }}
     >
       <View style={[s.row, { justifyContent: 'space-between', flexWrap: 'wrap' }]}>
-        <Text style={{ color: '#d6e0cc', fontSize: 13 }}>Team overview</Text>
-        <Tag text="Founder view" bg="#ffffff17" color={C.accent} />
+        <Text style={{ color: '#d6e0cc', fontSize: 13 }}>Today’s progress</Text>
+        <Tag text="Founder" bg="#ffffff17" color={C.accent} />
       </View>
       <View style={{ gap: 4 }}>
         <Text style={{ color: C.white, fontSize: 36, fontWeight: '500', letterSpacing: -1 }}>
-          {summary.updatedMembers} of {summary.members}
+          {summary.members ? `${summary.updatedMembers} of ${summary.members}` : 'Welcome!'}
         </Text>
         <Text style={{ color: '#d6e0cc', fontSize: 13, lineHeight: 19 }}>
-          teammates shared progress today
+          {summary.members
+            ? 'teammates sent an update today'
+            : 'Invite a teammate to start seeing progress.'}
         </Text>
       </View>
       <View style={[s.row, { alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }]}>
         {[
           [String(summary.workingMembers), 'Working now'],
-          [formatWorkDuration(summary.totalMs), 'Team time today'],
-          [String(summary.completedProjects), 'Projects complete'],
+          [formatWorkDuration(summary.totalMs), 'Hours logged today'],
         ].map(([value, label]) => (
           <View key={label} style={{ flexGrow: 1, gap: 4 }}>
             <Text style={{ color: C.white, fontSize: 20, fontWeight: '600' }}>{value}</Text>
@@ -50,14 +51,11 @@ export function TeamProgress({ onTeam, onUpdates }: { onTeam: () => void; onUpda
           {summary.overdueProjects} project{summary.overdueProjects === 1 ? '' : 's'} past deadline
         </Text>
       ) : null}
-      <View style={[s.row, { gap: 8 }]}>
-        <View style={{ flex: 1 }}>
-          <Button title="Team details" tone="accent" onPress={onTeam} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button title="Work updates" tone="glass" onPress={onUpdates} />
-        </View>
-      </View>
+      <Button
+        title={summary.members ? 'View team & hours' : 'Invite your team'}
+        tone="accent"
+        onPress={onTeam}
+      />
     </Card>
   );
 }

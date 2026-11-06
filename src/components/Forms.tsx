@@ -30,7 +30,6 @@ function readableDate(value: string) {
 const finishChoices = [
   { hours: 1, label: 'In 1 hour' },
   { hours: 2, label: 'In 2 hours' },
-  { hours: 4, label: 'In 4 hours' },
   { hours: 24, label: 'In 1 day' },
 ];
 const deadlineChoices = [
@@ -74,21 +73,16 @@ function TimeOptions({
           </Pressable>
         ))}
       </View>
-      <View style={[s.row, { gap: 7 }]}>
-        <Icon name="calendar-outline" size={16} color={C.green} />
-        <Text style={[s.body, { color: C.ink, flex: 1 }]}>
-          {readableDate(value)} <Text style={s.small}>· your local time</Text>
-        </Text>
-      </View>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Pick a date & time"
         accessibilityState={{ expanded: custom }}
         onPress={() => setCustom((open) => !open)}
-        style={{ minHeight: 44, justifyContent: 'center' }}
+        style={[s.row, { minHeight: 44, gap: 7 }]}
       >
-        <Text style={{ fontSize: 13, color: C.green, fontWeight: '600' }}>
-          {custom ? 'Hide custom date' : 'Choose another date or time'}
-        </Text>
+        <Icon name="calendar-outline" size={16} color={C.green} />
+        <Text style={[s.body, { color: C.ink, flex: 1 }]}>{readableDate(value)}</Text>
+        <Icon name={custom ? 'chevron-up' : 'chevron-down'} size={16} color={C.muted} />
       </Pressable>
       {custom ? (
         <Field
@@ -116,49 +110,47 @@ export function UpdateForm({
   revision?: WorkUpdate;
 }) {
   const { data, me, addUpdate } = useStore();
+  const activeProjects = data?.projects.filter((project) => !project.archived) || [];
   const [project, setProject] = useState(
-    revision?.project_id || projectId || data?.projects.find((p) => !p.archived)?.id || '',
+    revision?.project_id || projectId || activeProjects[0]?.id || '',
   );
   const [completed, setCompleted] = useState(revision?.completed || '');
   const [remaining, setRemaining] = useState(revision?.remaining || '');
   const [blocker, setBlocker] = useState(revision?.blocker || '');
   const [progress, setProgress] = useState(String(revision?.progress ?? 0));
   const [eta, setEta] = useState(() =>
-    localDate(new Date(revision?.eta || Date.now() + 4 * 3600000)),
+    localDate(new Date(revision?.eta || Date.now() + 2 * 3600000)),
   );
   const [period, setPeriod] = useState(revision?.period_hours || me?.cadence || 1);
-  const [etaHours, setEtaHours] = useState<number | undefined>(revision ? undefined : 4);
-  const [step, setStep] = useState(1);
+  const [etaHours, setEtaHours] = useState<number | undefined>(revision ? undefined : 2);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(!!revision?.blocker);
-  const [exactProgress, setExactProgress] = useState(
-    !!revision && ![0, 25, 50, 75, 100].includes(revision.progress),
+  const [moreOpen, setMoreOpen] = useState(
+    !!revision?.blocker || (!!revision && ![0, 25, 50, 75, 100].includes(revision.progress)),
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const activeProjects = data?.projects.filter((p) => !p.archived) || [];
-  const selectedProject = activeProjects.find((p) => p.id === project);
-  function next() {
+  const selectedProject = activeProjects.find((item) => item.id === project);
+  async function save() {
     setError('');
     if (!selectedProject) {
-      setError('Choose a project for this update.');
+      setError('Choose a project.');
       return;
     }
     if (!completed.trim()) {
       setError('Tell your team what you finished.');
       return;
     }
-    setStep(2);
-  }
-  async function save() {
-    setError('');
-    if (!progress.trim()) {
-      setError('Choose how much of your work is finished.');
+    if (
+      !progress.trim() ||
+      !Number.isFinite(Number(progress)) ||
+      Number(progress) < 0 ||
+      Number(progress) > 100
+    ) {
+      setError('Enter a progress percentage from 0 to 100.');
       return;
     }
     if (Number(progress) < 100 && !remaining.trim()) {
-      setStep(1);
-      setError('Add what is left to do. If everything is finished, choose 100% in the next step.');
+      setError('Tell us what is left, or choose 100% if all your work is done.');
       return;
     }
     setBusy(true);
@@ -182,14 +174,10 @@ export function UpdateForm({
   }
   if (!activeProjects.length)
     return (
-      <Sheet visible={visible} onClose={onClose} title="Add a project first">
+      <Sheet visible={visible} onClose={onClose} title="No projects yet">
         <Empty
-          title="No active projects"
-          body={
-            me?.role === 'founder'
-              ? 'Create a project in the Projects tab, then post your work update here.'
-              : 'Ask your founder to create a project before posting an update.'
-          }
+          title="A project is needed"
+          body="Ask your founder to add a project, then send your update here."
           action={<Button title="Got it" onPress={onClose} />}
         />
       </Sheet>
@@ -198,35 +186,15 @@ export function UpdateForm({
     <Sheet
       visible={visible}
       onClose={onClose}
-      contentKey={step}
-      title={revision ? 'Edit work update' : 'Post work update'}
-      subtitle={step === 1 ? 'Step 1 of 2 · Your work' : 'Step 2 of 2 · Finish time'}
+      title={revision ? 'Edit update' : 'Send work update'}
+      subtitle="What is done, what is next, and when it will finish."
     >
-      <View
-        accessibilityLabel={`Step ${step} of 2`}
-        style={{ flexDirection: 'row', gap: 6, marginBottom: 18 }}
-      >
-        {[1, 2].map((n) => (
-          <View
-            key={n}
-            style={{
-              flex: 1,
-              height: 4,
-              borderRadius: 4,
-              backgroundColor: n <= step ? C.green : C.line,
-            }}
-          />
-        ))}
-      </View>
-      <ErrorText text={error} />
-      {step === 1 ? (
+      {activeProjects.length > 1 && !revision ? (
         <>
-          <Text style={[s.label, { marginBottom: 6 }]}>Project</Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Choose project"
-            accessibilityState={{ expanded: pickerOpen, disabled: !!revision }}
-            disabled={!!revision}
+            accessibilityState={{ expanded: pickerOpen }}
             onPress={() => setPickerOpen((open) => !open)}
             style={[
               s.row,
@@ -234,161 +202,129 @@ export function UpdateForm({
                 padding: 12,
                 borderWidth: 1,
                 borderColor: C.line,
-                borderRadius: 10,
-                marginBottom: 14,
+                borderRadius: 14,
                 minHeight: 48,
+                marginBottom: 14,
               },
             ]}
           >
             <Icon name="layers-outline" size={18} color={C.green} />
             <Text style={[s.h3, { flex: 1 }]}>{selectedProject?.name || 'Choose a project'}</Text>
-            {!revision ? (
-              <Icon name={pickerOpen ? 'chevron-up' : 'chevron-down'} size={16} color={C.muted} />
-            ) : null}
+            <Icon name={pickerOpen ? 'chevron-up' : 'chevron-down'} size={16} color={C.muted} />
           </Pressable>
           {pickerOpen ? (
             <View style={[s.chips, { marginBottom: 14 }]}>
-              {activeProjects.map((p) => (
+              {activeProjects.map((item) => (
                 <Pressable
-                  key={p.id}
+                  key={item.id}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: project === p.id }}
+                  accessibilityState={{ selected: project === item.id }}
                   onPress={() => {
-                    setProject(p.id);
+                    setProject(item.id);
                     setPickerOpen(false);
                   }}
-                  style={[s.chip, project === p.id && s.chipActive]}
+                  style={[s.chip, project === item.id && s.chipActive]}
                 >
-                  <Text style={s.chipText}>{p.name}</Text>
+                  <Text style={s.chipText}>{item.name}</Text>
                 </Pressable>
               ))}
             </View>
           ) : null}
+        </>
+      ) : (
+        <Text style={[s.h3, { marginBottom: 16 }]}>{selectedProject?.name}</Text>
+      )}
+      <Field
+        label="What did you finish?"
+        value={completed}
+        onChangeText={setCompleted}
+        multiline
+        placeholder="e.g. Finished the login screen"
+      />
+      <Field
+        label="What is left to do?"
+        value={remaining}
+        onChangeText={setRemaining}
+        multiline
+        placeholder="Leave blank if all your work is done"
+      />
+      <Text style={[s.label, { marginBottom: 8 }]}>Work finished (%)</Text>
+      <View style={[s.chips, { marginBottom: 16 }]}>
+        {[0, 25, 50, 75, 100].map((value) => (
+          <Pressable
+            key={value}
+            accessibilityRole="button"
+            accessibilityState={{ selected: Number(progress) === value }}
+            onPress={() => setProgress(String(value))}
+            style={[s.chip, Number(progress) === value && s.chipActive]}
+          >
+            <Text style={s.chipText}>{value}%</Text>
+          </Pressable>
+        ))}
+      </View>
+      <TimeOptions
+        label="When will you finish?"
+        value={eta}
+        onChange={setEta}
+        choices={finishChoices}
+        selectedHours={etaHours}
+        onSelectHours={setEtaHours}
+      />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: moreOpen }}
+        onPress={() => setMoreOpen((open) => !open)}
+        style={[s.row, { minHeight: 44, justifyContent: 'space-between', marginBottom: 8 }]}
+      >
+        <Text style={{ color: C.green, fontSize: 13, fontWeight: '600' }}>
+          {moreOpen ? 'Fewer options' : 'More options'}
+        </Text>
+        <Icon name={moreOpen ? 'chevron-up' : 'chevron-down'} size={16} color={C.green} />
+      </Pressable>
+      {moreOpen ? (
+        <View style={{ padding: 14, backgroundColor: C.bg, borderRadius: 14, marginBottom: 16 }}>
+          <Field
+            label="Need help? (optional)"
+            value={blocker}
+            onChangeText={setBlocker}
+            placeholder="Tell your team what is stopping you"
+          />
+          <Field
+            label="Exact progress (%)"
+            value={progress}
+            onChangeText={setProgress}
+            keyboardType="numeric"
+          />
           <Text style={[s.label, { marginBottom: 8 }]}>This update covers</Text>
-          <View style={[s.chips, { marginBottom: 16 }]}>
-            {[1, 2].map((n) => (
+          <View style={s.chips}>
+            {[1, 2].map((value) => (
               <Pressable
-                key={n}
+                key={value}
                 accessibilityRole="button"
-                accessibilityState={{ selected: period === n }}
-                onPress={() => setPeriod(n)}
-                style={[s.chip, period === n && s.chipActive]}
+                accessibilityState={{ selected: period === value }}
+                onPress={() => setPeriod(value)}
+                style={[s.chip, period === value && s.chipActive]}
               >
                 <Text style={s.chipText}>
-                  Last {n} hour{n > 1 ? 's' : ''}
+                  Last {value} hour{value === 1 ? '' : 's'}
                 </Text>
               </Pressable>
             ))}
           </View>
-          <Field
-            label="What did you finish? *"
-            value={completed}
-            onChangeText={setCompleted}
-            multiline
-            placeholder="e.g. Finished the login screen"
-          />
-          <Field
-            label="What is left to do?"
-            value={remaining}
-            onChangeText={setRemaining}
-            multiline
-            placeholder="e.g. Test sign-in on Android. Leave blank if all done."
-          />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: helpOpen }}
-            onPress={() => setHelpOpen((open) => !open)}
-            style={[s.row, { minHeight: 44, marginBottom: 8 }]}
-          >
-            <Icon name="help-circle-outline" size={18} color={C.green} />
-            <Text style={{ flex: 1, fontSize: 13, color: C.green }}>
-              Need help with anything? (optional)
-            </Text>
-            <Icon name={helpOpen ? 'chevron-up' : 'chevron-down'} size={16} color={C.green} />
-          </Pressable>
-          {helpOpen ? (
-            <Field
-              label="What is stopping you?"
-              value={blocker}
-              onChangeText={setBlocker}
-              placeholder="Tell the team what help you need"
-            />
-          ) : null}
-          <Button title="Next: finish time" icon="arrow-forward" onPress={next} />
-        </>
-      ) : (
-        <>
-          <Text style={[s.body, { marginBottom: 16 }]}>
-            {selectedProject?.name} · Last {period} hour{period > 1 ? 's' : ''}
-          </Text>
-          <Text style={[s.h3, { marginBottom: 10 }]}>How much of your work is finished?</Text>
-          <View style={[s.chips, { marginBottom: 8 }]}>
-            {[0, 25, 50, 75, 100].map((n) => (
-              <Pressable
-                key={n}
-                accessibilityRole="button"
-                accessibilityState={{ selected: Number(progress) === n }}
-                onPress={() => {
-                  setProgress(String(n));
-                  setExactProgress(false);
-                }}
-                style={[s.chip, Number(progress) === n && s.chipActive]}
-              >
-                <Text style={s.chipText}>{n}%</Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={[s.small, { marginBottom: 8 }]}>Choose 100% if all your work is done.</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: exactProgress }}
-            onPress={() => setExactProgress((open) => !open)}
-            style={{ minHeight: 44, justifyContent: 'center', marginBottom: 8 }}
-          >
-            <Text style={{ color: C.green, fontSize: 13 }}>
-              {exactProgress ? 'Hide exact percentage' : 'Enter an exact percentage'}
-            </Text>
-          </Pressable>
-          {exactProgress ? (
-            <Field
-              label="Work finished (%)"
-              value={progress}
-              onChangeText={setProgress}
-              keyboardType="numeric"
-            />
-          ) : null}
-          <TimeOptions
-            label="When will you finish?"
-            value={eta}
-            onChange={setEta}
-            choices={finishChoices}
-            selectedHours={etaHours}
-            onSelectHours={setEtaHours}
-          />
-          {revision ? (
-            <Text style={[s.small, { marginBottom: 14 }]}>
-              Saving creates a new version. Your earlier update stays in the history.
-            </Text>
-          ) : null}
-          <View style={{ gap: 8 }}>
-            <Button
-              title={revision ? 'Save changes' : 'Share update with team'}
-              icon="checkmark"
-              loading={busy}
-              onPress={save}
-            />
-            <Button
-              title="Back to your work"
-              secondary
-              disabled={busy}
-              onPress={() => {
-                setStep(1);
-                setError('');
-              }}
-            />
-          </View>
-        </>
-      )}
+        </View>
+      ) : null}
+      {revision ? (
+        <Text style={[s.small, { marginBottom: 12 }]}>
+          The earlier version stays in your history.
+        </Text>
+      ) : null}
+      <ErrorText text={error} />
+      <Button
+        title={revision ? 'Save update' : 'Send update'}
+        icon="checkmark"
+        loading={busy}
+        onPress={save}
+      />
     </Sheet>
   );
 }

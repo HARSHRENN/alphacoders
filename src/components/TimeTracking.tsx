@@ -57,7 +57,7 @@ export function WorkClock() {
       <Card
         style={{
           marginBottom: 16,
-          gap: 16,
+          gap: 12,
           padding: 20,
           backgroundColor: C.green,
           borderColor: C.green,
@@ -65,94 +65,59 @@ export function WorkClock() {
           overflow: 'hidden',
         }}
       >
-        <View
-          pointerEvents="none"
-          accessible={false}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={{
-            position: 'absolute',
-            right: -60,
-            top: -86,
-            width: 220,
-            height: 220,
-            borderRadius: 110,
-            borderWidth: 1,
-            borderColor: '#ffffff18',
-          }}
-        >
-          <View
-            style={{
-              position: 'absolute',
-              inset: 24,
-              borderRadius: 100,
-              borderWidth: 1,
-              borderColor: '#ffffff18',
-            }}
-          />
-          <View
-            style={{
-              position: 'absolute',
-              inset: 48,
-              borderRadius: 100,
-              borderWidth: 1,
-              borderColor: '#ffffff18',
-            }}
-          />
-        </View>
         <View style={[s.row, { justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }]}>
           <Text style={{ color: '#d6e0cc', fontSize: 13, fontWeight: '500' }}>Your work time</Text>
           <Tag
-            text={active ? 'Working now' : 'Ready to start'}
+            text={active ? 'Working' : 'Not working'}
             bg="#ffffff17"
             color={active ? C.accent : '#e5ebdf'}
           />
         </View>
-        <View style={{ gap: 4 }}>
-          <Text
-            style={{
-              color: C.white,
-              fontSize: 40,
-              lineHeight: 50,
-              fontWeight: '500',
-              letterSpacing: -1.5,
-              fontVariant: ['tabular-nums'],
-            }}
+        <View style={[s.row, { justifyContent: 'space-between', gap: 8 }]}>
+          <View style={{ gap: 4 }}>
+            <Text
+              style={{
+                color: C.white,
+                fontSize: 34,
+                lineHeight: 44,
+                fontWeight: '500',
+                letterSpacing: -1.5,
+                fontVariant: ['tabular-nums'],
+              }}
+            >
+              {active
+                ? formatWorkDuration(workDurationMs(active, 0, now), true)
+                : formatWorkDuration(total)}
+            </Text>
+            <Text style={{ color: '#d6e0cc', fontSize: 12, lineHeight: 18 }}>
+              {active
+                ? `Started ${timeLabel(active.started_at)} · ${formatWorkDuration(total)} today`
+                : 'Total time logged today'}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="View my work hours"
+            onPress={() => setHistory(true)}
+            style={{ minHeight: 44, justifyContent: 'center' }}
           >
-            {active
-              ? formatWorkDuration(workDurationMs(active, 0, now), true)
-              : formatWorkDuration(total)}
-          </Text>
+            <Text style={{ color: C.white, fontSize: 13, textDecorationLine: 'underline' }}>
+              My hours
+            </Text>
+          </Pressable>
+        </View>
+        <Button
+          title={active ? 'Stop work' : 'Start work'}
+          icon={active ? 'stop-circle-outline' : 'play-circle-outline'}
+          tone="accent"
+          loading={busy}
+          onPress={toggle}
+        />
+        {active ? (
           <Text style={{ color: '#d6e0cc', fontSize: 12, lineHeight: 18 }}>
-            {active
-              ? `Started ${timeLabel(active.started_at)} · ${formatWorkDuration(total)} today`
-              : 'Total time logged today'}
+            Your timer keeps running when you close the app.
           </Text>
-        </View>
-        <View style={[s.row, { gap: 8 }]}>
-          <View style={{ flex: 1 }}>
-            <Button
-              title={active ? 'Stop work' : 'Start work'}
-              icon={active ? 'stop-circle-outline' : 'play-circle-outline'}
-              tone="accent"
-              loading={busy}
-              onPress={toggle}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Button
-              title="My history"
-              icon="time-outline"
-              tone="glass"
-              onPress={() => setHistory(true)}
-            />
-          </View>
-        </View>
-        <Text style={{ color: '#d6e0cc', fontSize: 12, lineHeight: 18 }}>
-          {active
-            ? 'Your timer keeps running when you close the app.'
-            : 'Start when you begin. Stop for a break or when you finish.'}
-        </Text>
+        ) : null}
       </Card>
       <ErrorText text={error} />
       {message ? (
@@ -193,7 +158,7 @@ export function WorkTimeHistory({ person, onClose }: { person: Profile; onClose:
     <Sheet
       visible
       title={`${person.name} · Work & time`}
-      subtitle="Start and stop times are saved by the server."
+      subtitle="Saved work hours and updates."
       onClose={onClose}
     >
       <View style={[s.chips, { marginBottom: 14 }]}>

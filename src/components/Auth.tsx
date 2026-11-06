@@ -146,9 +146,7 @@ export function Auth() {
                   </View>
                 </>
               ) : (
-                <Text style={{ color: '#c9ded1', fontSize: 13 }}>
-                  Projects, check-ins, and next steps. Together.
-                </Text>
+                <Text style={{ color: '#c9ded1', fontSize: 13 }}>Work updates made easy.</Text>
               )}
             </LinearGradient>
             <View
@@ -167,7 +165,7 @@ export function Auth() {
                   <Text style={[s.title, { marginTop: 8, marginBottom: 6 }]}>
                     {session
                       ? session.user.emailVerified
-                        ? 'Set up your workspace'
+                        ? 'Set up your team'
                         : 'Check your inbox.'
                       : mode === 'login'
                         ? 'Welcome back'
@@ -178,7 +176,7 @@ export function Auth() {
                   <Text style={[s.body, { marginBottom: 20 }]}>
                     {session
                       ? session.user.emailVerified
-                        ? 'Create your team workspace or join with a founder’s invite code.'
+                        ? 'Create a team, or enter the invite code your founder shared.'
                         : `Verify ${session.user.email} before creating or joining a workspace.`
                       : mode === 'signup'
                         ? 'Create a login, verify your email, then create or join a team.'
@@ -212,7 +210,7 @@ export function Auth() {
                   ) : session ? (
                     <>
                       <View style={[s.chips, { marginBottom: 16 }]}>
-                        {['Create workspace', 'Join team'].map((t, i) => (
+                        {['Create a team', 'Join a team'].map((t, i) => (
                           <Pressable
                             accessibilityRole="button"
                             key={t}
@@ -226,24 +224,24 @@ export function Auth() {
                       <Field label="Your full name" value={name} onChangeText={setName} />
                       {joining ? (
                         <Field
-                          label="Workspace invite code"
+                          label="Team invite code"
                           value={code}
                           onChangeText={setCode}
                           placeholder="Ask your founder for the invite code"
                         />
                       ) : (
                         <Field
-                          label="Workspace name"
+                          label="Team name"
                           value={workspace}
                           onChangeText={setWorkspace}
-                          placeholder="Your workspace name"
+                          placeholder="Your team name"
                         />
                       )}
                     </>
                   ) : (
                     <>
                       <Field
-                        label="Work email"
+                        label="Email address"
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
@@ -271,7 +269,7 @@ export function Auth() {
                           ? 'I verified my email'
                           : joining
                             ? 'Join workspace'
-                            : 'Create workspace'
+                            : 'Create team'
                         : mode === 'login'
                           ? 'Sign in'
                           : mode === 'reset'

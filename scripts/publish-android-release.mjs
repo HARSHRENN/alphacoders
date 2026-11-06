@@ -64,7 +64,8 @@ for (const permission of config.android.blockedPermissions || [])
     throw new Error(`Unused permission remains: ${permission}`);
 const bundle = run('unzip', ['-p', apk, 'assets/index.android.bundle'], true);
 for (const marker of [
-  'Team overview',
+  'View team & hours',
+  'Send work update',
   'Work timers are for team members only.',
   'jrvqllgpuhzwyswwmpka.supabase.co',
 ])
