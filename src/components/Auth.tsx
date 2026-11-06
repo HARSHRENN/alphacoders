@@ -25,16 +25,24 @@ export function Auth() {
   const { session, refresh, leave, reloadAccount, error: connectionError } = useStore();
   const { width } = useWindowDimensions();
   const desktop = width > 800;
-  const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login'),
+  const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('signup'),
+    [audience, setAudience] = useState<'team' | 'founder'>('team'),
     [email, setEmail] = useState(''),
     [password, setPassword] = useState(''),
     [name, setName] = useState(''),
     [workspace, setWorkspace] = useState(''),
     [code, setCode] = useState(''),
-    [joining, setJoining] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [message, setMessage] = useState('');
+  const joining = audience === 'team';
+  function switchAudience(next: 'team' | 'founder') {
+    setAudience(next);
+    setMode(next === 'team' ? 'signup' : 'login');
+    setPassword('');
+    setError('');
+    setMessage('');
+  }
   async function submit() {
     setError('');
     setMessage('');
@@ -52,6 +60,8 @@ export function Auth() {
           return;
         }
         if (!name.trim()) throw new Error('Enter your full name.');
+        if (joining && !code.trim()) throw new Error('Enter the invite code from your founder.');
+        if (!joining && !workspace.trim()) throw new Error('Enter your team name.');
         await ensureDatabaseAccess();
         const { error: e } = await supabase.rpc(
           joining ? 'join_workspace' : 'create_workspace',
@@ -62,6 +72,7 @@ export function Auth() {
         if (e) throw e;
         await refresh();
       } else if (mode === 'signup') {
+        if (joining && !code.trim()) throw new Error('Enter the invite code from your founder.');
         if (password.length < 8) throw new Error('Use at least 8 characters for your password.');
         const { user } = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password);
         setPassword('');
@@ -159,30 +170,42 @@ export function Auth() {
             >
               <View style={{ width: '100%', maxWidth: 400 }}>
                 <MotionView
-                  key={`${mode}-${session ? (session.user.emailVerified ? 'workspace' : 'verify') : 'auth'}`}
+                  key={`${audience}-${mode}-${session ? (session.user.emailVerified ? 'workspace' : 'verify') : 'auth'}`}
                 >
-                  <Text style={s.eyebrow}>{session ? 'ACCOUNT SETUP' : 'YOUR TEAM WORKSPACE'}</Text>
+                  <Text style={s.eyebrow}>{joining ? 'TEAM ACCESS' : 'FOUNDER ACCESS'}</Text>
                   <Text style={[s.title, { marginTop: 8, marginBottom: 6 }]}>
                     {session
                       ? session.user.emailVerified
-                        ? 'Set up your team'
+                        ? joining
+                          ? 'Join your team'
+                          : 'Create your team'
                         : 'Check your inbox.'
                       : mode === 'login'
-                        ? 'Welcome back'
+                        ? joining
+                          ? 'Team sign in'
+                          : 'Founder login'
                         : mode === 'reset'
                           ? 'Reset your password'
-                          : 'Create your account'}
+                          : joining
+                            ? 'Join your team'
+                            : 'Create a founder account'}
                   </Text>
                   <Text style={[s.body, { marginBottom: 20 }]}>
                     {session
                       ? session.user.emailVerified
-                        ? 'Create a team, or enter the invite code your founder shared.'
-                        : `Verify ${session.user.email} before creating or joining a workspace.`
+                        ? joining
+                          ? 'Enter the invite code your founder shared to join their team.'
+                          : 'Name your team to create a workspace you manage.'
+                        : `Verify ${session.user.email}, then ${joining ? 'join your team with its invite code' : 'set up your team'}.`
                       : mode === 'signup'
-                        ? 'Create a login, verify your email, then create or join a team.'
+                        ? joining
+                          ? 'Have an invite code? Create your account, verify your email, and join your team.'
+                          : 'Create your account and verify your email to set up a team.'
                         : mode === 'reset'
                           ? 'We’ll email you a link to choose a new password.'
-                          : 'Sign in to see your projects and share a work update.'}
+                          : joining
+                            ? 'Already joined? Sign in to see your projects and work updates.'
+                            : 'Sign in to manage your team, projects, and work reports.'}
                   </Text>
                   {session && !session.user.emailVerified ? (
                     <View style={{ marginBottom: 18 }}>
@@ -209,18 +232,6 @@ export function Auth() {
                     </View>
                   ) : session ? (
                     <>
-                      <View style={[s.chips, { marginBottom: 16 }]}>
-                        {['Create a team', 'Join a team'].map((t, i) => (
-                          <Pressable
-                            accessibilityRole="button"
-                            key={t}
-                            onPress={() => setJoining(!!i)}
-                            style={[s.chip, joining === !!i && s.chipActive]}
-                          >
-                            <Text style={s.chipText}>{t}</Text>
-                          </Pressable>
-                        ))}
-                      </View>
                       <Field label="Your full name" value={name} onChangeText={setName} />
                       {joining ? (
                         <Field
@@ -240,6 +251,14 @@ export function Auth() {
                     </>
                   ) : (
                     <>
+                      {joining && mode === 'signup' ? (
+                        <Field
+                          label="Team invite code *"
+                          value={code}
+                          onChangeText={setCode}
+                          placeholder="Enter the code your founder shared"
+                        />
+                      ) : null}
                       <Field
                         label="Email address"
                         value={email}
@@ -268,13 +287,15 @@ export function Auth() {
                         ? !session.user.emailVerified
                           ? 'I verified my email'
                           : joining
-                            ? 'Join workspace'
+                            ? 'Join team'
                             : 'Create team'
                         : mode === 'login'
                           ? 'Sign in'
                           : mode === 'reset'
                             ? 'Send reset email'
-                            : 'Create account'
+                            : joining
+                              ? 'Create account to join'
+                              : 'Create founder account'
                     }
                     icon="arrow-forward"
                     onPress={submit}
@@ -293,8 +314,12 @@ export function Auth() {
                       >
                         <Text style={[s.body, { textAlign: 'center' }]}>
                           {mode === 'login'
-                            ? 'New here? Create an account'
-                            : 'Already have an account? Sign in'}
+                            ? joining
+                              ? 'Have an invite? Join your team'
+                              : 'New founder? Create an account'
+                            : joining
+                              ? 'Already a member? Sign in'
+                              : 'Already have a founder account? Sign in'}
                         </Text>
                       </Pressable>
                       {mode === 'login' ? (
@@ -320,6 +345,20 @@ export function Auth() {
                       />
                     </View>
                   )}
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => switchAudience(joining ? 'founder' : 'team')}
+                    style={{
+                      minHeight: 44,
+                      marginTop: 12,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={[s.small, { color: C.muted, textDecorationLine: 'underline' }]}>
+                      {joining ? 'Founder login' : 'Back to join team'}
+                    </Text>
+                  </Pressable>
                 </MotionView>
               </View>
             </View>
