@@ -26,8 +26,8 @@ export function validateUpdate(input: {
   eta: string;
 }) {
   if (!input.completed.trim()) throw new Error('Tell your team what you completed.');
-  if (!Number.isFinite(input.progress) || input.progress < 0 || input.progress > 100)
-    throw new Error('Progress must be between 0 and 100.');
+  if (!Number.isInteger(input.progress) || input.progress < 0 || input.progress > 100)
+    throw new Error('Progress must be a whole number from 0 to 100.');
   if (input.progress < 100 && !input.remaining.trim())
     throw new Error('Add the work that remains.');
   if (!Number.isFinite(Date.parse(input.eta)) || Date.parse(input.eta) <= Date.now())

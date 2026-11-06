@@ -142,11 +142,11 @@ export function UpdateForm({
     }
     if (
       !progress.trim() ||
-      !Number.isFinite(Number(progress)) ||
+      !Number.isInteger(Number(progress)) ||
       Number(progress) < 0 ||
       Number(progress) > 100
     ) {
-      setError('Enter a progress percentage from 0 to 100.');
+      setError('Enter a whole-number percentage from 0 to 100.');
       return;
     }
     if (Number(progress) < 100 && !remaining.trim()) {

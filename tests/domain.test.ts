@@ -45,6 +45,7 @@ test('update input rejects missing work, invalid progress, and past ETA', () => 
   assert.doesNotThrow(() => validateUpdate(input));
   assert.throws(() => validateUpdate({ ...input, completed: ' ' }));
   assert.throws(() => validateUpdate({ ...input, progress: NaN }));
+  assert.throws(() => validateUpdate({ ...input, progress: 33.5 }), /whole number/);
   assert.throws(() => validateUpdate({ ...input, progress: 101 }));
   assert.throws(() => validateUpdate({ ...input, remaining: '' }));
   assert.throws(() => validateUpdate({ ...input, eta: '2020-01-01' }));
